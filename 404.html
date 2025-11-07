@@ -680,24 +680,28 @@
                 </div>
             </form>
             
-            <div class="backend-status">
-                <h4>🔧 System Status</h4>
-                <div class="service-status">
-                    <div id="backendStatus" class="status-badge status-active">
-                        <span>✅ C Backend</span>
-                    </div>
-                    <div id="smsStatus" class="status-badge status-active">
-                        <span>✅ Twilio SMS</span>
-                    </div>
-                    <div id="emailStatus" class="status-badge status-active">
-                        <span>✅ Email Alerts</span>
-                    </div>
-                </div>
-                <p style="margin-top: 10px; font-size: 0.9em; color: #666;">
-                    High-risk transactions (60%+) automatically trigger SMS and email alerts via Twilio and SMTP.
-                </p>
-            </div>
+           <div class="backend-status">
+    <h4>🔧 Real Services Status</h4>
+    <div class="service-status">
+        <div id="backendStatus" class="status-badge status-active">
+            <span>✅ C Backend</span>
         </div>
+        <div id="smsStatus" class="status-badge status-active">
+            <span>✅ Twilio SMS</span>
+        </div>
+        <div id="emailStatus" class="status-badge status-active">
+            <span>✅ EmailJS</span>
+        </div>
+    </div>
+    <p style="margin-top: 10px; font-size: 0.9em; color: #666;">
+        Real Twilio SMS and EmailJS services active. High-risk transactions automatically trigger alerts.
+    </p>
+    <div style="margin-top: 10px; font-size: 0.8em; color: #28a745;">
+        <strong>📱 SMS Test:</strong> Use a real phone number (e.g., +1234567890)
+        <br>
+        <strong>📧 Email Test:</strong> Use a real email address
+    </div>
+</div>
 
         <!-- Dashboard Section -->
         <div class="results-container">
