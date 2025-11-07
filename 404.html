@@ -1339,7 +1339,170 @@ This is an automated alert. Please do not reply to this email.`;
                         sendBtn.innerHTML = '<div class="loading-spinner"></div> Sending...';
                     }
 
-                    // Send to your backend which will use Twilio
+                    // Enhanced configuration with YOUR REAL credentials
+const CONFIG = {
+    // REAL backend endpoints
+    backendUrl: 'http://localhost:3000/api/process-transaction',
+    smsUrl: 'http://localhost:3000/api/send-sms',
+    emailUrl: 'http://localhost:3000/api/send-email',
+    autoAlertUrl: 'http://localhost:3000/api/send-auto-alerts',
+    testUrl: 'http://localhost:3000/api/test',
+    testTwilioUrl: 'http://localhost:3000/api/test-twilio',
+    testEmailUrl: 'http://localhost:3000/api/test-emailjs',
+    servicesConfigUrl: 'http://localhost:3000/api/services/config',
+    
+    accounts: [
+        { accNo: 100, name: "Alice Smith", balance: 150000, type: "Premium" },
+        { accNo: 101, name: "Bob Johnson", balance: 75000, type: "Standard" },
+        { accNo: 102, name: "Carol Davis", balance: 250000, type: "Business" },
+        { accNo: 103, name: "David Wilson", balance: 50000, type: "Standard" },
+        { accNo: 104, name: "Eva Brown", balance: 300000, type: "Premium" }
+    ],
+    thresholds: {
+        highValue: 50000,
+        veryHighValue: 100000,
+        autoAlertThreshold: 60 // Risk score percentage
+    }
+};
+
+// In the FraudDetectionSystem class, update the init method:
+async init() {
+    console.log('🚀 Fraud Detection System Started - REAL SERVICES');
+    this.setupEventListeners();
+    this.loadTransactionHistory();
+    this.updateStats();
+    await this.testAllServices();
+    await this.loadServicesConfig();
+}
+
+async loadServicesConfig() {
+    try {
+        const response = await fetch(CONFIG.servicesConfigUrl);
+        const config = await response.json();
+        console.log('🔧 Services Configuration:', config);
+        this.showAlert('✅ Real Twilio SMS & EmailJS services connected!', 'success');
+    } catch (error) {
+        console.log('Service config load failed, using default');
+    }
+}
+
+async testAllServices() {
+    await this.testBackendConnection();
+    await this.testTwilioService();
+    await this.testEmailService();
+}
+
+async testTwilioService() {
+    try {
+        const response = await fetch(CONFIG.testTwilioUrl);
+        const result = await response.json();
+        this.setSMSStatus(result.success);
+        if (result.success) {
+            console.log('✅ Twilio SMS: ACTIVE - Ready to send real SMS');
+        }
+    } catch (error) {
+        console.log('❌ Twilio service test failed');
+        this.setSMSStatus(false);
+    }
+}
+
+async testEmailService() {
+    try {
+        const response = await fetch(CONFIG.testEmailUrl);
+        const result = await response.json();
+        this.setEmailStatus(result.success);
+        if (result.success) {
+            console.log('✅ EmailJS: ACTIVE - Ready to send real emails');
+        }
+    } catch (error) {
+        console.log('❌ EmailJS service test failed');
+        this.setEmailStatus(false);
+    }
+}
+
+// Update the processWithBackend method to send auto-alerts:
+async processWithBackend(transactionData) {
+    try {
+        const response = await fetch(CONFIG.backendUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(transactionData)
+        });
+
+        if (!response.ok) {
+            throw new Error(`Backend error: ${response.status}`);
+        }
+
+        const result = await response.json();
+
+        if (!result.success) {
+            throw new Error(result.error || 'Backend processing failed');
+        }
+
+        // Create transaction object
+        const account = this.accounts.find(acc => acc.accNo === transactionData.accNo);
+        if (account) {
+            account.balance = result.transaction.remainingBalance;
+        }
+
+        const transaction = {
+            id: result.transaction.id,
+            ...transactionData,
+            timestamp: new Date(result.transaction.timestamp * 1000).toLocaleString(),
+            alerts: result.transaction.alerts,
+            status: result.transaction.status,
+            riskScore: result.transaction.riskScore,
+            remainingBalance: result.transaction.remainingBalance,
+            accountName: account ? account.name : 'Unknown',
+            accountType: account ? account.type : 'Unknown'
+        };
+
+        this.transactions.unshift(transaction);
+        this.saveToLocalStorage();
+        this.currentTransaction = transaction;
+
+        // AUTO-SEND REAL ALERTS for high risk transactions
+        if (result.transaction.riskScore >= CONFIG.thresholds.autoAlertThreshold) {
+            setTimeout(async () => {
+                try {
+                    const alertResponse = await fetch(CONFIG.autoAlertUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            transaction: {
+                                ...transaction,
+                                phone: transactionData.mobileNumber,
+                                email: transactionData.emailAddress
+                            }
+                        })
+                    });
+
+                    const alertResult = await alertResponse.json();
+                    if (alertResult.success) {
+                        console.log('🚨 Auto-alerts sent:', alertResult.results);
+                        this.showAlert('📱 REAL SMS & Email alerts sent to your devices!', 'success');
+                    }
+                } catch (alertError) {
+                    console.error('Auto-alert error:', alertError);
+                }
+            }, 1500);
+        }
+
+        return {
+            success: true,
+            transaction: transaction,
+            remainingBalance: result.transaction.remainingBalance
+        };
+
+    } catch (error) {
+        console.error('Backend failed:', error);
+        throw error;
+    }
+}
                     const response = await fetch(CONFIG.smsUrl, {
                         method: 'POST',
                         headers: {
