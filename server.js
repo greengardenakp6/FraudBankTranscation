@@ -16,9 +16,9 @@ const twilioPhoneNumber = '+14787395985'; // Your Twilio phone number
 
 // EmailJS Configuration
 const EMAILJS_CONFIG = {
-    serviceId: 'service_8o5jw1c',      // Replace with your EmailJS service ID
-    templateId: 'template_9pz4k6a',    // Replace with your EmailJS template ID
-    publicKey: 'bVK4J2JwJY7J2JwJY'     // Replace with your EmailJS public key
+    serviceId: 'akash',      // Replace with your EmailJS service ID
+    templateId: 'AKASH',    // Replace with your EmailJS template ID
+    publicKey: 'CaMVUkQYox6o96Q29'     // Replace with your EmailJS public key
 };
 
 // Middleware
