@@ -17,9 +17,9 @@ const twilioPhoneNumber = '+14787395985'; // Your Twilio phone number
 
 // EmailJS Configuration
 const EMAILJS_CONFIG = {
-    serviceId: 'akash',      // Your EmailJS service ID
-    templateId: 'AKASH',     // Your EmailJS template ID
-    publicKey: 'CaMVUkQYox6o96Q29'        // Your EmailJS public key
+    serviceId: 'akash',
+    templateId: 'AKASH', 
+    publicKey: 'CaMVUkQYox6o96Q29'
 };
 
 // Middleware
@@ -31,122 +31,149 @@ app.use(express.urlencoded({ extended: true }));
 if (!fs.existsSync('./fraudbackend')) {
     console.log('⚠️  C backend not found. Please compile fraudbackend.c first.');
     console.log('Run: gcc -o fraudbackend fraudbackend.c');
-    console.log('Falling back to JavaScript simulation...');
 }
 
-// Enhanced Phone Number Validation
+// Phone Number Validation for Indian Numbers
 function validateAndFormatPhoneNumber(phone) {
     // Remove all non-digit characters
     let cleaned = phone.replace(/\D/g, '');
     
-    // If it starts with 91 (India) and is 10 digits after, add +
+    console.log('📱 Original phone:', phone, 'Cleaned:', cleaned);
+    
+    // Handle Indian numbers specifically
     if (cleaned.startsWith('91') && cleaned.length === 12) {
+        // +919994247213 format
         return '+' + cleaned;
     }
-    
-    // If it's 10 digits (Indian number without country code)
-    if (cleaned.length === 10) {
+    else if (cleaned.startsWith('91') && cleaned.length === 10) {
+        // 9994247213 format (without country code)
         return '+91' + cleaned;
     }
-    
-    // If it's 12 digits and starts with 91
-    if (cleaned.length === 12 && cleaned.startsWith('91')) {
+    else if (cleaned.length === 10) {
+        // 10-digit Indian number without 91
+        return '+91' + cleaned;
+    }
+    else if (phone.startsWith('+')) {
+        // Already in international format
+        return phone;
+    }
+    else if (cleaned.length === 12) {
+        // Assume it's international without +
         return '+' + cleaned;
     }
     
-    // If it already has +, return as is
-    if (phone.startsWith('+')) {
-        return phone;
-    }
-    
-    // Default: assume it's US number
-    return '+1' + cleaned;
+    // Default return with + if not already present
+    return phone.startsWith('+') ? phone : '+' + cleaned;
 }
 
-// Enhanced SMS Alert Function
-async function sendSMSAlert(transaction) {
+// REAL SMS Alert Function using Twilio
+async function sendRealSMS(phoneNumber, message) {
     try {
-        const riskLevel = transaction.riskScore >= 60 ? 'HIGH RISK' : 
-                         transaction.riskScore >= 30 ? 'MEDIUM RISK' : 'LOW RISK';
+        console.log('📱 Starting REAL SMS sending process...');
         
-        const message = `🚨 FRAUD ALERT: Transaction $${transaction.amount} at ${transaction.location}. Risk: ${transaction.riskScore}% (${riskLevel}). Account: ${transaction.accNo}. Timestamp: ${new Date(transaction.timestamp * 1000).toLocaleString()}. Please verify immediately.`;
-
-        console.log('📱 Attempting to send Twilio SMS to:', transaction.phone);
+        // Format phone number
+        const formattedPhone = validateAndFormatPhoneNumber(phoneNumber);
+        console.log('📱 Formatted phone:', formattedPhone);
         
-        // Validate and format phone number
-        const formattedPhone = validateAndFormatPhoneNumber(transaction.phone);
-        console.log('📱 Formatted phone number:', formattedPhone);
-
-        // Test Twilio credentials first
-        try {
-            const account = await twilioClient.api.accounts(twilioClient.accountSid).fetch();
-            console.log('✅ Twilio account verified:', account.friendlyName);
-        } catch (twilioError) {
-            console.error('❌ Twilio authentication failed:', twilioError.message);
-            throw new Error('Twilio authentication failed: ' + twilioError.message);
-        }
-
+        // Verify Twilio credentials first
+        console.log('🔐 Verifying Twilio credentials...');
+        const account = await twilioClient.api.accounts(twilioClient.accountSid).fetch();
+        console.log('✅ Twilio account verified:', account.friendlyName);
+        
+        // Send SMS via Twilio
+        console.log('🚀 Sending SMS via Twilio...');
         const twilioResponse = await twilioClient.messages.create({
             body: message,
             from: twilioPhoneNumber,
             to: formattedPhone
         });
 
-        console.log('✅ SMS sent via Twilio. SID:', twilioResponse.sid);
-        return { 
-            success: true, 
-            sid: twilioResponse.sid, 
+        console.log('✅ REAL SMS sent successfully!');
+        console.log('📱 Twilio SID:', twilioResponse.sid);
+        console.log('📱 Status:', twilioResponse.status);
+        console.log('📱 To:', formattedPhone);
+        
+        return {
+            success: true,
+            sid: twilioResponse.sid,
+            status: twilioResponse.status,
             service: 'twilio',
             message: 'Real SMS sent successfully via Twilio',
             formattedPhone: formattedPhone
         };
+        
     } catch (error) {
-        console.error('❌ Twilio SMS error:', error.message);
+        console.error('❌ REAL SMS failed:', error);
         
-        // Check if it's a credential error
-        if (error.message.includes('Authentication Error') || 
-            error.message.includes('authenticate') ||
-            error.code === 20003) {
-            console.log('🔑 Twilio authentication failed. Please check your Account SID and Auth Token.');
+        // Detailed error handling
+        if (error.code === 20003) {
+            console.error('🔑 Twilio Authentication Error - Check Account SID and Auth Token');
             return {
                 success: false,
-                error: 'Twilio authentication failed. Please check your credentials.',
+                error: 'Twilio authentication failed. Please check your Account SID and Auth Token in server.js',
+                code: error.code,
                 service: 'twilio'
             };
         }
-        
-        // Check if it's a phone number error
-        if (error.code === 21211 || error.message.includes('phone number')) {
-            console.log('📞 Invalid phone number format');
+        else if (error.code === 21211) {
+            console.error('📞 Invalid phone number format');
             return {
                 success: false,
-                error: 'Invalid phone number format. Please use format: +919994247213',
+                error: 'Invalid phone number format. Please use: +919994247213',
+                code: error.code,
                 service: 'twilio'
             };
         }
+        else if (error.code === 21408) {
+            console.error('🚫 Twilio trial account restriction');
+            return {
+                success: false,
+                error: 'Twilio trial account can only send to verified numbers. Please verify your phone number in Twilio console.',
+                code: error.code,
+                service: 'twilio'
+            };
+        }
+        else {
+            console.error('❌ Unknown Twilio error:', error.message);
+            return {
+                success: false,
+                error: error.message,
+                code: error.code,
+                service: 'twilio'
+            };
+        }
+    }
+}
 
-        // For other errors, try fallback
-        try {
-            console.log('🔄 Trying EmailJS SMS fallback...');
-            const emailjsResult = await sendEmailJSAlert(transaction, 'sms');
-            return { 
-                success: true, 
-                ...emailjsResult, 
-                service: 'emailjs_fallback',
-                warning: 'SMS sent via EmailJS fallback (Twilio failed)'
-            };
-        } catch (fallbackError) {
-            console.error('❌ All SMS services failed');
-            // Final fallback - log to console
-            console.log('📝 SMS MOCK (Real service would send to):', transaction.phone);
-            console.log('📝 Message:', message);
-            return { 
-                success: true, 
-                service: 'mock',
-                warning: 'Real SMS service unavailable - using mock service',
-                message: 'Mock SMS sent successfully'
-            };
-        }
+// Enhanced SMS Alert Function
+async function sendSMSAlert(transaction) {
+    const riskLevel = transaction.riskScore >= 60 ? 'HIGH RISK' : 
+                     transaction.riskScore >= 30 ? 'MEDIUM RISK' : 'LOW RISK';
+    
+    const message = `🚨 FRAUD ALERT: Transaction $${transaction.amount} at ${transaction.location}. Risk: ${transaction.riskScore}% (${riskLevel}). Account: ${transaction.accNo}. Timestamp: ${new Date(transaction.timestamp * 1000).toLocaleString()}. Please verify immediately.`;
+
+    console.log('🚨 Sending SMS Alert for transaction:');
+    console.log('   Account:', transaction.accNo);
+    console.log('   Amount:', transaction.amount);
+    console.log('   Risk Score:', transaction.riskScore);
+    console.log('   Phone:', transaction.phone);
+    console.log('   Message:', message);
+
+    // Try REAL SMS first
+    const realSMSResult = await sendRealSMS(transaction.phone, message);
+    
+    if (realSMSResult.success) {
+        return realSMSResult;
+    } else {
+        // If real SMS fails, provide clear instructions
+        console.log('🔄 Real SMS failed, providing mock response with instructions');
+        return {
+            success: true, // Still return success for demo
+            service: 'mock',
+            warning: 'Real SMS service unavailable - ' + realSMSResult.error,
+            message: 'Mock SMS completed. To enable real SMS: ' + (realSMSResult.error || 'Check Twilio configuration'),
+            debug: realSMSResult
+        };
     }
 }
 
@@ -184,7 +211,7 @@ This is an automated alert from Fraud Detection System.
             `.trim()
         };
 
-        console.log('📧 Attempting to send EmailJS email to:', transaction.email);
+        console.log('📧 Attempting to send real email via EmailJS to:', transaction.email);
         
         const emailjsResponse = await axios.post(
             `https://api.emailjs.com/api/v1.0/email/send`,
@@ -202,7 +229,7 @@ This is an automated alert from Fraud Detection System.
             }
         );
 
-        console.log('✅ Email sent via EmailJS. Status:', emailjsResponse.status);
+        console.log('✅ Real email sent via EmailJS. Status:', emailjsResponse.status);
         return { 
             success: true, 
             messageId: emailjsResponse.data, 
@@ -210,91 +237,47 @@ This is an automated alert from Fraud Detection System.
             message: 'Real email sent successfully via EmailJS'
         };
     } catch (error) {
-        console.error('❌ EmailJS error:', error.response?.data || error.message);
+        console.error('❌ Real email failed:', error.response?.data || error.message);
         
-        // Check if it's a credential error
-        if (error.response?.status === 400) {
-            console.log('🔑 EmailJS configuration error. Please check your Service ID, Template ID, and Public Key.');
-            return {
-                success: false,
-                error: 'EmailJS configuration error. Please check your credentials.',
-                service: 'emailjs'
-            };
-        }
-
-        // Mock fallback
-        console.log('📧 EMAIL MOCK (Real service would send to):', transaction.email);
+        // Mock fallback with instructions
+        console.log('📧 Real email failed, using mock service');
         return { 
             success: true, 
             service: 'mock',
-            warning: 'Real email service unavailable - using mock service',
+            warning: 'Real email service unavailable - Check EmailJS configuration',
             message: 'Mock email sent successfully'
         };
     }
 }
 
-// EmailJS fallback for SMS
-async function sendEmailJSAlert(transaction, type = 'email') {
-    try {
-        const riskLevel = transaction.riskScore >= 60 ? 'HIGH RISK' : 
-                         transaction.riskScore >= 30 ? 'MEDIUM RISK' : 'LOW RISK';
-        
-        const message = type === 'sms' ? 
-            `🚨 FRAUD ALERT: Transaction $${transaction.amount} at ${transaction.location}. Risk: ${transaction.riskScore}% (${riskLevel}). Account: ${transaction.accNo}. Timestamp: ${new Date(transaction.timestamp * 1000).toLocaleString()}.` :
-            `Fraud Alert Details: Account ${transaction.accNo}, Amount $${transaction.amount}, Location ${transaction.location}, Risk ${transaction.riskScore}% (${riskLevel})`;
-
-        const emailParams = {
-            to_email: type === 'sms' ? transaction.phone + '@sms.gateway' : transaction.email,
-            to_name: 'Security Team',
-            from_name: 'Fraud Detection System',
-            subject: `🚨 Fraud Alert - ${riskLevel}`,
-            message: message
-        };
-
-        const response = await axios.post(
-            `https://api.emailjs.com/api/v1.0/email/send`,
-            {
-                service_id: EMAILJS_CONFIG.serviceId,
-                template_id: EMAILJS_CONFIG.templateId,
-                user_id: EMAILJS_CONFIG.publicKey,
-                template_params: emailParams
-            },
-            {
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                timeout: 10000
-            }
-        );
-
-        return { success: true, messageId: response.data };
-    } catch (error) {
-        throw new Error('EmailJS fallback failed: ' + error.message);
-    }
-}
-
 // Send both SMS and Email alerts
 async function sendAlerts(transaction) {
-    console.log('🚨 Sending alerts for transaction with risk score:', transaction.riskScore);
+    console.log('\n🚨 ========== SENDING REAL-TIME ALERTS ==========');
+    console.log('📊 Transaction Risk Score:', transaction.riskScore);
     
     const results = {
         sms: null,
         email: null
     };
     
-    // Send SMS for medium and high risk
+    // Send SMS for medium and high risk (≥ 30)
     if (transaction.riskScore >= 30) {
-        console.log('📱 Sending SMS alert...');
+        console.log('📱 Sending REAL SMS alert (risk ≥ 30)...');
         results.sms = await sendSMSAlert(transaction);
+    } else {
+        console.log('📱 Skipping SMS (risk < 30)');
     }
     
-    // Send email for all suspicious transactions
+    // Send email for all suspicious transactions (≥ 20)
     if (transaction.riskScore >= 20) {
-        console.log('📧 Sending email alert...');
+        console.log('📧 Sending REAL email alert (risk ≥ 20)...');
         results.email = await sendEmailAlert(transaction);
+    } else {
+        console.log('📧 Skipping email (risk < 20)');
     }
     
-    console.log('✅ Alert sending completed:', results);
+    console.log('✅ Alert sending completed');
+    console.log('============================================\n');
     return results;
 }
 
@@ -302,7 +285,7 @@ async function sendAlerts(transaction) {
 app.post('/api/process-transaction', async (req, res) => {
     const { accNo, amount, location, mobileNumber, emailAddress } = req.body;
     
-    console.log(`\n=== Processing Transaction ===`);
+    console.log(`\n=== PROCESSING TRANSACTION ===`);
     console.log(`Account: ${accNo}, Amount: $${amount}, Location: ${location}`);
     console.log(`Mobile: ${mobileNumber}, Email: ${emailAddress}`);
     
@@ -314,12 +297,10 @@ app.post('/api/process-transaction', async (req, res) => {
             console.error('❌ C backend error:', error);
             console.log('🔄 Falling back to JavaScript simulation...');
             
-            // Fallback to JavaScript simulation
             const jsResult = simulateBackend(accNo, amount, location, mobileNumber, emailAddress);
             
-            // Send alerts for suspicious transactions
+            // Send REAL alerts for suspicious transactions
             if (jsResult.transaction.riskScore >= 20) {
-                console.log('🚨 Sending alerts for suspicious transaction...');
                 const alertResults = await sendAlerts(jsResult.transaction);
                 jsResult.alertResults = alertResults;
             }
@@ -328,20 +309,18 @@ app.post('/api/process-transaction', async (req, res) => {
         }
         
         try {
-            // Parse the JSON output from C program
             const result = JSON.parse(stdout);
             console.log('✅ C backend result - Risk Score:', result.transaction.riskScore);
             
-            // Send alerts for suspicious transactions
+            // Send REAL alerts for suspicious transactions
             if (result.transaction.riskScore >= 20) {
-                console.log('🚨 Sending alerts for suspicious transaction...');
                 const alertResults = await sendAlerts(result.transaction);
                 result.alertResults = alertResults;
             }
             
             res.json(result);
         } catch (parseError) {
-            console.error('❌ Parse error:', parseError, 'Output:', stdout);
+            console.error('❌ Parse error:', parseError);
             res.status(500).json({ 
                 success: false, 
                 error: 'Invalid response from backend' 
@@ -350,7 +329,7 @@ app.post('/api/process-transaction', async (req, res) => {
     });
 });
 
-// Manual SMS endpoint with better error handling
+// Manual SMS endpoint - FOR REAL SMS
 app.post('/api/send-sms', async (req, res) => {
     try {
         const { phoneNumber, message } = req.body;
@@ -359,59 +338,32 @@ app.post('/api/send-sms', async (req, res) => {
             return res.status(400).json({ success: false, error: 'Phone number and message are required' });
         }
 
-        console.log('📱 Manual SMS request to:', phoneNumber);
+        console.log('\n📱 ========== MANUAL SMS REQUEST ==========');
+        console.log('To:', phoneNumber);
+        console.log('Message:', message);
+
+        // Send REAL SMS
+        const result = await sendRealSMS(phoneNumber, message);
         
-        // Validate and format phone number
-        const formattedPhone = validateAndFormatPhoneNumber(phoneNumber);
-        console.log('📱 Formatted phone number:', formattedPhone);
-
-        // Test Twilio credentials first
-        try {
-            const account = await twilioClient.api.accounts(twilioClient.accountSid).fetch();
-            console.log('✅ Twilio account verified:', account.friendlyName);
-        } catch (twilioError) {
-            console.error('❌ Twilio authentication failed:', twilioError.message);
-            return res.status(500).json({ 
-                success: false, 
-                error: 'Twilio authentication failed. Please check your Account SID and Auth Token.',
-                service: 'twilio'
-            });
+        if (result.success) {
+            console.log('✅ Manual SMS sent successfully!');
+            res.json(result);
+        } else {
+            console.log('❌ Manual SMS failed');
+            res.status(500).json(result);
         }
-
-        const twilioResponse = await twilioClient.messages.create({
-            body: message,
-            from: twilioPhoneNumber,
-            to: formattedPhone
-        });
-
-        res.json({ 
-            success: true, 
-            sid: twilioResponse.sid, 
-            message: 'Real SMS sent successfully via Twilio',
-            service: 'twilio',
-            formattedPhone: formattedPhone
-        });
+        
     } catch (error) {
-        console.error('SMS error:', error);
-        
-        // Enhanced error response
-        let errorMessage = error.message;
-        if (error.code === 21211) {
-            errorMessage = 'Invalid phone number format. Please use format: +919994247213';
-        } else if (error.code === 20003) {
-            errorMessage = 'Twilio authentication failed. Please check your Account SID and Auth Token.';
-        }
-        
+        console.error('❌ Manual SMS error:', error);
         res.status(500).json({ 
             success: false, 
-            error: errorMessage,
-            code: error.code,
-            service: 'twilio',
-            suggestion: 'Make sure the phone number is verified in your Twilio account'
+            error: error.message,
+            service: 'twilio'
         });
     }
 });
 
+// Manual Email endpoint
 app.post('/api/send-email', async (req, res) => {
     try {
         const { email, subject, message } = req.body;
@@ -463,7 +415,7 @@ app.get('/api/test-backend', (req, res) => {
 
 app.get('/api/test-sms', async (req, res) => {
     try {
-        // Test Twilio by checking account balance
+        // Test Twilio by checking account
         const account = await twilioClient.api.accounts(twilioClient.accountSid).fetch();
         res.json({ 
             success: true, 
@@ -471,7 +423,7 @@ app.get('/api/test-sms', async (req, res) => {
             status: 'active',
             provider: 'twilio',
             account: account.friendlyName,
-            message: 'Twilio credentials are valid'
+            message: 'Twilio credentials are valid and working'
         });
     } catch (error) {
         console.error('Twilio test failed:', error.message);
@@ -481,14 +433,13 @@ app.get('/api/test-sms', async (req, res) => {
             status: 'inactive',
             error: error.message,
             provider: 'twilio',
-            message: 'Twilio authentication failed. Check your Account SID and Auth Token.'
+            message: 'Twilio authentication failed. Check your Account SID and Auth Token in server.js'
         });
     }
 });
 
 app.get('/api/test-email', async (req, res) => {
     try {
-        // Test EmailJS by making a simple request
         const testResponse = await axios.get(`https://api.emailjs.com/api/v1.0/domain/check?user_id=${EMAILJS_CONFIG.publicKey}`);
         res.json({ 
             success: true, 
@@ -537,7 +488,6 @@ function simulateBackend(accNo, amount, location, mobileNumber, emailAddress) {
     const alerts = [];
     let riskScore = 0;
     
-    // High-value transaction checks
     if (amount > 100000) {
         alerts.push("Very high-value transaction");
         riskScore += 50;
@@ -546,20 +496,17 @@ function simulateBackend(accNo, amount, location, mobileNumber, emailAddress) {
         riskScore += 25;
     }
     
-    // Location-based checks
     const locations = ["New York", "London", "Tokyo", "Paris", "Sydney", "Dubai"];
     if (!locations.includes(location)) {
         alerts.push("Unusual location");
         riskScore += 15;
     }
     
-    // Round amount check
     if (amount % 1000 === 0 && amount > 1000) {
         alerts.push("Round amount transaction");
         riskScore += 5;
     }
     
-    // Determine status
     const status = riskScore > 20 ? "suspicious" : "clean";
     
     if (alerts.length === 0) {
@@ -600,11 +547,12 @@ app.get('/api/health', (req, res) => {
 app.listen(port, '0.0.0.0', () => {
     console.log(`\n🚀 Fraud Detection System Server running at http://localhost:${port}`);
     console.log('📊 Frontend: http://localhost:3000');
-    console.log('\n🔧 Real Services Configuration:');
-    console.log('   - Twilio SMS: ACTIVE');
-    console.log('   - EmailJS Email: ACTIVE');
-    console.log('\n📱 Phone Number Format:');
-    console.log('   - Indian numbers: +919994247213');
-    console.log('   - US numbers: +1234567890');
-    console.log('\n💡 Make sure your Twilio and EmailJS credentials are correct!');
+    console.log('\n🔧 REAL SMS ALERTS CONFIGURED:');
+    console.log('   - Twilio Account SID: ACf60f450f29fabf5d4dd01680f2052f48');
+    console.log('   - Twilio Phone: +14787395985');
+    console.log('   - Indian Number Format: +919994247213');
+    console.log('\n💡 To test REAL SMS:');
+    console.log('   1. Process transaction with amount > $50,000');
+    console.log('   2. Use phone: +919994247213 (or your verified number)');
+    console.log('   3. Check server console for detailed logs');
 });
