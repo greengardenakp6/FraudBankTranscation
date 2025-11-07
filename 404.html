@@ -600,6 +600,37 @@
             font-size: 0.85em;
         }
 
+        .alert-results {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #17a2b8;
+        }
+
+        .alert-result-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+            padding: 8px;
+            background: white;
+            border-radius: 6px;
+            border: 1px solid #e9ecef;
+        }
+
+        .alert-result-item.success {
+            border-left: 4px solid #28a745;
+        }
+
+        .alert-result-item.warning {
+            border-left: 4px solid #ffc107;
+        }
+
+        .alert-result-item.error {
+            border-left: 4px solid #dc3545;
+        }
+
         @media (max-width: 768px) {
             .form-grid {
                 grid-template-columns: 1fr;
@@ -731,25 +762,26 @@
                         <span>✅ C Backend</span>
                     </div>
                     <div id="smsStatus" class="status-badge status-active">
-                        <span>✅ Twilio SMS</span>
+                        <span>⏳ Testing SMS...</span>
                     </div>
                     <div id="emailStatus" class="status-badge status-active">
-                        <span>✅ EmailJS</span>
+                        <span>⏳ Testing Email...</span>
                     </div>
                 </div>
                 
                 <div class="real-service-indicator">
-                    <h4>🚀 REAL SMS & EMAIL ALERTS ACTIVE</h4>
-                    <p><strong>High-risk transactions automatically trigger real alerts via:</strong></p>
+                    <h4>🚀 REAL SMS & EMAIL ALERTS</h4>
+                    <p><strong>Automatic alerts for suspicious transactions:</strong></p>
                     <ul style="margin: 10px 0; padding-left: 20px;">
-                        <li><strong>Twilio SMS:</strong> Real SMS to mobile numbers</li>
-                        <li><strong>EmailJS:</strong> Real email alerts with details</li>
+                        <li><strong>📱 SMS Alerts:</strong> Risk score ≥ 30%</li>
+                        <li><strong>📧 Email Alerts:</strong> Risk score ≥ 20%</li>
+                        <li><strong>🚨 High Risk:</strong> Risk score ≥ 60%</li>
                     </ul>
                     
                     <div class="test-instructions">
-                        <strong>📱 SMS Test:</strong> Use a real phone number (e.g., +919994247213)<br>
+                        <strong>📱 SMS Test:</strong> Use +919994247213 (or your verified number)<br>
                         <strong>📧 Email Test:</strong> Use a real email address<br>
-                        <strong>💡 Tip:</strong> Transactions over $50,000 automatically trigger alerts
+                        <strong>💡 Tip:</strong> Try amount $75,000 to trigger alerts
                     </div>
                 </div>
             </div>
@@ -886,6 +918,7 @@
             this.backendActive = false;
             this.smsActive = false;
             this.emailActive = false;
+            this.alertResults = null;
             this.init();
         }
 
@@ -908,41 +941,54 @@
                 const response = await fetch(CONFIG.testBackendUrl);
                 const result = await response.json();
                 this.setBackendStatus(result.success);
+                console.log('✅ Backend test:', result);
             } catch (error) {
-                console.log('Backend test failed, using fallback');
+                console.log('❌ Backend test failed, using fallback');
                 this.setBackendStatus(true); // Fallback is available
             }
         }
 
         async testSMSService() {
             try {
+                console.log('📱 Testing SMS service...');
                 const response = await fetch(CONFIG.testSmsUrl);
                 const result = await response.json();
                 this.setSMSStatus(result.success);
+                console.log('📱 SMS test result:', result);
+                
                 if (result.success) {
                     console.log('✅ Twilio SMS service: ACTIVE - Real SMS available');
+                    this.showAlert('✅ Twilio SMS service is ACTIVE - Real SMS alerts enabled', 'success');
                 } else {
                     console.log('⚠️ Twilio SMS service: INACTIVE - Using mock service');
+                    this.showAlert('⚠️ Twilio SMS service inactive - Using mock service', 'warning');
                 }
             } catch (error) {
-                console.log('SMS service test failed');
+                console.log('❌ SMS service test failed:', error);
                 this.setSMSStatus(false);
+                this.showAlert('❌ SMS service test failed - Using mock service', 'error');
             }
         }
 
         async testEmailService() {
             try {
+                console.log('📧 Testing Email service...');
                 const response = await fetch(CONFIG.testEmailUrl);
                 const result = await response.json();
                 this.setEmailStatus(result.success);
+                console.log('📧 Email test result:', result);
+                
                 if (result.success) {
                     console.log('✅ EmailJS service: ACTIVE - Real emails available');
+                    this.showAlert('✅ EmailJS service is ACTIVE - Real email alerts enabled', 'success');
                 } else {
                     console.log('⚠️ EmailJS service: INACTIVE - Using mock service');
+                    this.showAlert('⚠️ EmailJS service inactive - Using mock service', 'warning');
                 }
             } catch (error) {
-                console.log('Email service test failed');
+                console.log('❌ Email service test failed:', error);
                 this.setEmailStatus(false);
+                this.showAlert('❌ Email service test failed - Using mock service', 'error');
             }
         }
 
@@ -1047,6 +1093,7 @@
 
         async processWithBackend(transactionData) {
             try {
+                console.log('🔄 Processing transaction with backend...');
                 const response = await fetch(CONFIG.backendUrl, {
                     method: 'POST',
                     headers: {
@@ -1093,23 +1140,17 @@
                 this.saveToLocalStorage();
                 this.currentTransaction = transaction;
 
-                // Auto-send REAL alerts for high risk transactions
-                if (result.transaction.riskScore >= 30) {
-                    setTimeout(() => {
-                        console.log('🚨 Auto-sending REAL alerts for high-risk transaction');
-                        if (result.transaction.riskScore >= 30) {
-                            this.sendTwilioSMS(transaction.mobileNumber, transaction);
-                        }
-                        if (result.transaction.riskScore >= 20) {
-                            this.sendEmailReport(transaction.emailAddress, transaction);
-                        }
-                    }, 1000);
+                // Store alert results for display
+                if (result.alertResults) {
+                    this.alertResults = result.alertResults;
+                    console.log('📧 Alert results received:', this.alertResults);
                 }
 
                 return {
                     success: true,
                     transaction: transaction,
-                    remainingBalance: result.transaction.remainingBalance
+                    remainingBalance: result.transaction.remainingBalance,
+                    alertResults: result.alertResults
                 };
 
             } catch (error) {
@@ -1147,19 +1188,6 @@
             this.transactions.unshift(transaction);
             this.saveToLocalStorage();
             this.currentTransaction = transaction;
-
-            // Auto-send REAL alerts for high risk transactions
-            if (fraudResult.riskScore >= 30) {
-                setTimeout(() => {
-                    console.log('🚨 Auto-sending REAL alerts for high-risk transaction');
-                    if (fraudResult.riskScore >= 30) {
-                        this.sendTwilioSMS(transaction.mobileNumber, transaction);
-                    }
-                    if (fraudResult.riskScore >= 20) {
-                        this.sendEmailReport(transaction.emailAddress, transaction);
-                    }
-                }, 1000);
-            }
 
             return {
                 success: true,
@@ -1253,17 +1281,23 @@
                 </div>
             `;
 
-            // Show alert status
-            if (riskScore >= 30) {
-                html += `<div class="alert alert-info">
-                    <strong>🚨 REAL ALERTS:</strong> SMS and Email alerts have been automatically sent for this suspicious transaction.
-                </div>`;
-            } else if (riskScore >= 20) {
-                html += `<div class="alert alert-info">
-                    <strong>📧 REAL ALERTS:</strong> Email alert has been automatically sent for this transaction.
-                </div>`;
+            // Display alert results if available
+            if (result.alertResults) {
+                html += this.displayAlertResults(result.alertResults, riskScore);
+            } else {
+                // Show alert status based on risk score
+                if (riskScore >= 30) {
+                    html += `<div class="alert alert-info">
+                        <strong>🚨 ALERTS QUEUED:</strong> SMS and Email alerts will be sent for this suspicious transaction.
+                    </div>`;
+                } else if (riskScore >= 20) {
+                    html += `<div class="alert alert-info">
+                        <strong>📧 ALERTS QUEUED:</strong> Email alert will be sent for this transaction.
+                    </div>`;
+                }
             }
 
+            // Display fraud detection alerts
             result.transaction.alerts.forEach(alert => {
                 const isWarning = !alert.includes("No fraud detected");
                 const alertClass = isWarning ? 'alert-warning' : 'alert-info';
@@ -1274,6 +1308,46 @@
 
             resultsDiv.innerHTML = html;
             resultsDiv.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        displayAlertResults(alertResults, riskScore) {
+            let html = `<div class="alert-results">
+                <h4>📨 Alert Delivery Status</h4>`;
+
+            // SMS Alert Results
+            if (alertResults.sms && riskScore >= 30) {
+                const smsResult = alertResults.sms;
+                const statusClass = smsResult.success ? 'success' : smsResult.warning ? 'warning' : 'error';
+                const icon = smsResult.success ? '✅' : smsResult.warning ? '⚠️' : '❌';
+                const service = smsResult.service || 'unknown';
+                
+                html += `<div class="alert-result-item ${statusClass}">
+                    <div>${icon}</div>
+                    <div>
+                        <strong>📱 SMS Alert:</strong> ${smsResult.message || smsResult.error || 'Sent'}
+                        <br><small>Service: ${service} | Phone: ${smsResult.formattedPhone || 'N/A'}</small>
+                    </div>
+                </div>`;
+            }
+
+            // Email Alert Results
+            if (alertResults.email && riskScore >= 20) {
+                const emailResult = alertResults.email;
+                const statusClass = emailResult.success ? 'success' : emailResult.warning ? 'warning' : 'error';
+                const icon = emailResult.success ? '✅' : emailResult.warning ? '⚠️' : '❌';
+                const service = emailResult.service || 'unknown';
+                
+                html += `<div class="alert-result-item ${statusClass}">
+                    <div>${icon}</div>
+                    <div>
+                        <strong>📧 Email Alert:</strong> ${emailResult.message || emailResult.error || 'Sent'}
+                        <br><small>Service: ${service}</small>
+                    </div>
+                </div>`;
+            }
+
+            html += `</div>`;
+            return html;
         }
 
         // SMS Modal
@@ -1740,4 +1814,3 @@ This is an automated alert. Please do not reply to this email.`;
 </script>
 </body>
 </html>
-
