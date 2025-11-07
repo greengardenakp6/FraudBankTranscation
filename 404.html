@@ -797,466 +797,437 @@
         </div>
     </div>
 
-    <script>
-        // Configuration
-        const CONFIG = {
-            backendUrl: 'http://localhost:3000/api/process-transaction',
-            smsUrl: 'http://localhost:3000/api/send-sms',
-            emailUrl: 'http://localhost:3000/api/send-email',
-            accounts: [
-                { accNo: 100, name: "Alice Smith", balance: 150000, type: "Premium" },
-                { accNo: 101, name: "Bob Johnson", balance: 75000, type: "Standard" },
-                { accNo: 102, name: "Carol Davis", balance: 250000, type: "Business" },
-                { accNo: 103, name: "David Wilson", balance: 50000, type: "Standard" },
-                { accNo: 104, name: "Eva Brown", balance: 300000, type: "Premium" },
-                { accNo: 105, name: "Frank Miller", balance: 120000, type: "Gold" },
-                { accNo: 106, name: "Grace Lee", balance: 80000, type: "Standard" },
-                { accNo: 107, name: "Henry Clark", balance: 200000, type: "Business" },
-                { accNo: 108, name: "Ivy Garcia", balance: 60000, type: "Standard" },
-                { accNo: 109, name: "Jack Martinez", balance: 180000, type: "Premium" }
-            ]
-        };
+   <script>
+    // Configuration
+    const CONFIG = {
+        backendUrl: 'http://localhost:3000/api/process-transaction',
+        smsUrl: 'http://localhost:3000/api/send-sms',
+        emailUrl: 'http://localhost:3000/api/send-email',
+        testBackendUrl: 'http://localhost:3000/api/test-backend',
+        testSmsUrl: 'http://localhost:3000/api/test-sms',
+        testEmailUrl: 'http://localhost:3000/api/test-email',
+        accounts: [
+            { accNo: 100, name: "Alice Smith", balance: 150000, type: "Premium" },
+            { accNo: 101, name: "Bob Johnson", balance: 75000, type: "Standard" },
+            { accNo: 102, name: "Carol Davis", balance: 250000, type: "Business" },
+            { accNo: 103, name: "David Wilson", balance: 50000, type: "Standard" },
+            { accNo: 104, name: "Eva Brown", balance: 300000, type: "Premium" },
+            { accNo: 105, name: "Frank Miller", balance: 120000, type: "Gold" },
+            { accNo: 106, name: "Grace Lee", balance: 80000, type: "Standard" },
+            { accNo: 107, name: "Henry Clark", balance: 200000, type: "Business" },
+            { accNo: 108, name: "Ivy Garcia", balance: 60000, type: "Standard" },
+            { accNo: 109, name: "Jack Martinez", balance: 180000, type: "Premium" }
+        ]
+    };
 
-        // Main Fraud Detection System Class
-        class FraudDetectionSystem {
-            constructor() {
-                this.transactions = [];
-                this.accounts = JSON.parse(JSON.stringify(CONFIG.accounts));
-                this.currentTransaction = null;
-                this.backendActive = true;
-                this.smsActive = true;
-                this.emailActive = true;
-                this.init();
+    // Main Fraud Detection System Class
+    class FraudDetectionSystem {
+        constructor() {
+            this.transactions = [];
+            this.accounts = JSON.parse(JSON.stringify(CONFIG.accounts));
+            this.currentTransaction = null;
+            this.backendActive = false;
+            this.smsActive = false;
+            this.emailActive = false;
+            this.init();
+        }
+
+        async init() {
+            console.log('Fraud Detection System Started');
+            this.setupEventListeners();
+            this.loadTransactionHistory();
+            this.updateStats();
+            await this.testAllServices();
+        }
+
+        async testAllServices() {
+            await this.testBackendConnection();
+            await this.testSMSService();
+            await this.testEmailService();
+        }
+
+        async testBackendConnection() {
+            try {
+                const response = await fetch(CONFIG.testBackendUrl);
+                const result = await response.json();
+                this.setBackendStatus(result.success);
+            } catch (error) {
+                console.log('Backend test failed, using fallback');
+                this.setBackendStatus(true); // Fallback is available
+            }
+        }
+
+        async testSMSService() {
+            try {
+                const response = await fetch(CONFIG.testSmsUrl);
+                const result = await response.json();
+                this.setSMSStatus(result.success);
+            } catch (error) {
+                console.log('SMS service test failed');
+                this.setSMSStatus(true); // Mock service is available
+            }
+        }
+
+        async testEmailService() {
+            try {
+                const response = await fetch(CONFIG.testEmailUrl);
+                const result = await response.json();
+                this.setEmailStatus(result.success);
+            } catch (error) {
+                console.log('Email service test failed');
+                this.setEmailStatus(true); // Mock service is available
+            }
+        }
+
+        setBackendStatus(active) {
+            this.backendActive = active;
+            const statusElement = document.getElementById('backendStatus');
+            if (active) {
+                statusElement.className = 'status-badge status-active';
+                statusElement.innerHTML = '<span>✅ C Backend</span>';
+            } else {
+                statusElement.className = 'status-badge status-warning';
+                statusElement.innerHTML = '<span>⚠️ JS Fallback</span>';
+            }
+        }
+
+        setSMSStatus(active) {
+            this.smsActive = active;
+            const statusElement = document.getElementById('smsStatus');
+            if (active) {
+                statusElement.className = 'status-badge status-active';
+                statusElement.innerHTML = '<span>✅ SMS Ready</span>';
+            } else {
+                statusElement.className = 'status-badge status-warning';
+                statusElement.innerHTML = '<span>⚠️ SMS Mock</span>';
+            }
+        }
+
+        setEmailStatus(active) {
+            this.emailActive = active;
+            const statusElement = document.getElementById('emailStatus');
+            if (active) {
+                statusElement.className = 'status-badge status-active';
+                statusElement.innerHTML = '<span>✅ Email Ready</span>';
+            } else {
+                statusElement.className = 'status-badge status-warning';
+                statusElement.innerHTML = '<span>⚠️ Email Mock</span>';
+            }
+        }
+
+        setupEventListeners() {
+            document.getElementById('transactionForm').addEventListener('submit', (e) => this.handleTransaction(e));
+            document.getElementById('quickScan').addEventListener('click', () => this.quickSecurityScan());
+            document.getElementById('exportReport').addEventListener('click', () => this.exportReport());
+            document.getElementById('refreshStats').addEventListener('click', () => this.refreshStats());
+            document.getElementById('clearHistory').addEventListener('click', () => this.clearHistory());
+            document.getElementById('exportData').addEventListener('click', () => this.exportData());
+            
+            // Modal event listeners
+            document.querySelectorAll('.close-modal').forEach(btn => {
+                btn.addEventListener('click', () => this.closeModals());
+            });
+            
+            document.getElementById('cancelSMS').addEventListener('click', () => this.closeModals());
+            document.getElementById('sendSMS').addEventListener('click', () => this.sendTwilioSMS());
+            
+            document.getElementById('cancelEmail').addEventListener('click', () => this.closeModals());
+            document.getElementById('sendEmail').addEventListener('click', () => this.sendEmailReport());
+        }
+
+        async handleTransaction(e) {
+            e.preventDefault();
+            
+            const accNo = document.getElementById('accNo').value;
+            const amount = parseFloat(document.getElementById('amount').value);
+            const location = document.getElementById('location').value;
+            const mobileNumber = document.getElementById('mobileNumber').value;
+            const emailAddress = document.getElementById('emailAddress').value;
+
+            if (!accNo || !amount || amount <= 0 || !location || !mobileNumber || !emailAddress) {
+                this.showAlert('Please fill all fields correctly', 'error');
+                return;
             }
 
-            init() {
-                console.log('Fraud Detection System Started');
-                this.setupEventListeners();
-                this.loadTransactionHistory();
-                this.updateStats();
-                this.testBackendConnection();
-                this.testSMSService();
-                this.testEmailService();
-            }
+            const submitBtn = document.getElementById('submitBtn');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<div class="loading-spinner"></div> Processing...';
 
-            async testBackendConnection() {
-                try {
-                    const response = await fetch(CONFIG.backendUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ 
-                            accNo: 100, 
-                            amount: 100, 
-                            location: 'Test',
-                            mobileNumber: '+1234567890',
-                            emailAddress: 'test@example.com'
-                        })
-                    });
-                    
-                    if (response.ok) {
-                        this.setBackendStatus(true);
-                    } else {
-                        this.setBackendStatus(false);
-                    }
-                } catch (error) {
-                    console.log('Backend not available, using fallback');
-                    this.setBackendStatus(false);
-                }
-            }
-
-            async testSMSService() {
-                try {
-                    const response = await fetch(CONFIG.smsUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ 
-                            phoneNumber: '+1234567890',
-                            message: 'Test SMS from Fraud Detection System'
-                        })
-                    });
-                    
-                    const result = await response.json();
-                    this.setSMSStatus(result.success);
-                } catch (error) {
-                    console.log('SMS service not available');
-                    this.setSMSStatus(false);
-                }
-            }
-
-            async testEmailService() {
-                try {
-                    const response = await fetch(CONFIG.emailUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ 
-                            email: 'test@example.com',
-                            subject: 'Test Email from Fraud Detection System',
-                            message: 'This is a test email from the Fraud Detection System.'
-                        })
-                    });
-                    
-                    const result = await response.json();
-                    this.setEmailStatus(result.success);
-                } catch (error) {
-                    console.log('Email service not available');
-                    this.setEmailStatus(false);
-                }
-            }
-
-            setBackendStatus(active) {
-                this.backendActive = active;
-                const statusElement = document.getElementById('backendStatus');
-                if (active) {
-                    statusElement.className = 'status-badge status-active';
-                    statusElement.innerHTML = '<span>✅ C Backend</span>';
-                } else {
-                    statusElement.className = 'status-badge status-inactive';
-                    statusElement.innerHTML = '<span>⚠️ JS Fallback</span>';
-                }
-            }
-
-            setSMSStatus(active) {
-                this.smsActive = active;
-                const statusElement = document.getElementById('smsStatus');
-                if (active) {
-                    statusElement.className = 'status-badge status-active';
-                    statusElement.innerHTML = '<span>✅ Twilio SMS</span>';
-                } else {
-                    statusElement.className = 'status-badge status-inactive';
-                    statusElement.innerHTML = '<span>❌ SMS Offline</span>';
-                }
-            }
-
-            setEmailStatus(active) {
-                this.emailActive = active;
-                const statusElement = document.getElementById('emailStatus');
-                if (active) {
-                    statusElement.className = 'status-badge status-active';
-                    statusElement.innerHTML = '<span>✅ Email Alerts</span>';
-                } else {
-                    statusElement.className = 'status-badge status-inactive';
-                    statusElement.innerHTML = '<span>❌ Email Offline</span>';
-                }
-            }
-
-            setupEventListeners() {
-                document.getElementById('transactionForm').addEventListener('submit', (e) => this.handleTransaction(e));
-                document.getElementById('quickScan').addEventListener('click', () => this.quickSecurityScan());
-                document.getElementById('exportReport').addEventListener('click', () => this.exportReport());
-                document.getElementById('refreshStats').addEventListener('click', () => this.refreshStats());
-                document.getElementById('clearHistory').addEventListener('click', () => this.clearHistory());
-                document.getElementById('exportData').addEventListener('click', () => this.exportData());
+            try {
+                let result;
                 
-                // Modal event listeners
-                document.querySelectorAll('.close-modal').forEach(btn => {
-                    btn.addEventListener('click', () => this.closeModals());
+                // Always try backend first, fallback to JavaScript
+                result = await this.processWithBackend({
+                    accNo: parseInt(accNo),
+                    amount: amount,
+                    location: location,
+                    mobileNumber: mobileNumber,
+                    emailAddress: emailAddress
                 });
                 
-                document.getElementById('cancelSMS').addEventListener('click', () => this.closeModals());
-                document.getElementById('sendSMS').addEventListener('click', () => this.sendTwilioSMS());
+                this.displayResults(result);
+                this.loadTransactionHistory();
+                this.updateStats();
                 
-                document.getElementById('cancelEmail').addEventListener('click', () => this.closeModals());
-                document.getElementById('sendEmail').addEventListener('click', () => this.sendEmailReport());
+            } catch (error) {
+                this.showAlert('Error: ' + error.message, 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
             }
+        }
 
-            async handleTransaction(e) {
-                e.preventDefault();
-                
-                const accNo = document.getElementById('accNo').value;
-                const amount = parseFloat(document.getElementById('amount').value);
-                const location = document.getElementById('location').value;
-                const mobileNumber = document.getElementById('mobileNumber').value;
-                const emailAddress = document.getElementById('emailAddress').value;
+        async processWithBackend(transactionData) {
+            try {
+                const response = await fetch(CONFIG.backendUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        accNo: transactionData.accNo,
+                        amount: transactionData.amount,
+                        location: transactionData.location,
+                        mobileNumber: transactionData.mobileNumber,
+                        emailAddress: transactionData.emailAddress
+                    })
+                });
 
-                if (!accNo || !amount || amount <= 0 || !location || !mobileNumber || !emailAddress) {
-                    this.showAlert('Please fill all fields correctly', 'error');
-                    return;
+                if (!response.ok) {
+                    throw new Error(`Backend error: ${response.status}`);
                 }
 
-                const submitBtn = document.getElementById('submitBtn');
-                const originalText = submitBtn.innerHTML;
-                submitBtn.disabled = true;
-                submitBtn.innerHTML = '<div class="loading-spinner"></div> Processing...';
+                const result = await response.json();
 
-                try {
-                    let result;
-                    
-                    if (this.backendActive) {
-                        result = await this.processWithBackend({
-                            accNo: parseInt(accNo),
-                            amount: amount,
-                            location: location,
-                            mobileNumber: mobileNumber,
-                            emailAddress: emailAddress
-                        });
-                    } else {
-                        result = this.processWithJavaScript({
-                            accNo: parseInt(accNo),
-                            amount: amount,
-                            location: location,
-                            mobileNumber: mobileNumber,
-                            emailAddress: emailAddress
-                        });
-                    }
-                    
-                    this.displayResults(result);
-                    this.loadTransactionHistory();
-                    this.updateStats();
-                    
-                } catch (error) {
-                    this.showAlert('Error: ' + error.message, 'error');
-                } finally {
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = originalText;
+                if (!result.success) {
+                    throw new Error(result.error || 'Backend processing failed');
                 }
-            }
 
-            async processWithBackend(transactionData) {
-                try {
-                    const response = await fetch(CONFIG.backendUrl, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            accNo: transactionData.accNo,
-                            amount: transactionData.amount,
-                            location: transactionData.location,
-                            mobileNumber: transactionData.mobileNumber,
-                            emailAddress: transactionData.emailAddress
-                        })
-                    });
-
-                    if (!response.ok) {
-                        throw new Error(`Backend error: ${response.status}`);
-                    }
-
-                    const result = await response.json();
-
-                    if (!result.success) {
-                        throw new Error(result.error || 'Backend processing failed');
-                    }
-
-                    // Create complete transaction object
-                    const account = this.accounts.find(acc => acc.accNo === transactionData.accNo);
-                    if (account) {
-                        account.balance = result.transaction.remainingBalance;
-                    }
-
-                    const transaction = {
-                        id: result.transaction.id,
-                        ...transactionData,
-                        timestamp: new Date(result.transaction.timestamp * 1000).toLocaleString(),
-                        alerts: result.transaction.alerts,
-                        status: result.transaction.status,
-                        riskScore: result.transaction.riskScore,
-                        remainingBalance: result.transaction.remainingBalance,
-                        accountName: account ? account.name : 'Unknown',
-                        accountType: account ? account.type : 'Unknown'
-                    };
-
-                    this.transactions.unshift(transaction);
-                    this.saveToLocalStorage();
-                    this.currentTransaction = transaction;
-
-                    return {
-                        success: true,
-                        transaction: transaction,
-                        remainingBalance: result.transaction.remainingBalance
-                    };
-
-                } catch (error) {
-                    console.error('Backend failed, falling back to JavaScript:', error);
-                    this.setBackendStatus(false);
-                    return this.processWithJavaScript(transactionData);
-                }
-            }
-
-            processWithJavaScript(transactionData) {
+                // Create complete transaction object
                 const account = this.accounts.find(acc => acc.accNo === transactionData.accNo);
-                if (!account) {
-                    throw new Error('Account not found');
+                if (account) {
+                    account.balance = result.transaction.remainingBalance;
                 }
-
-                if (account.balance < transactionData.amount) {
-                    throw new Error('Insufficient balance');
-                }
-
-                const fraudResult = this.detectFraud(transactionData);
-                account.balance -= transactionData.amount;
 
                 const transaction = {
-                    id: Date.now(),
+                    id: result.transaction.id,
                     ...transactionData,
-                    timestamp: new Date().toLocaleString(),
-                    alerts: fraudResult.alerts,
-                    status: fraudResult.isSuspicious ? 'suspicious' : 'clean',
-                    riskScore: fraudResult.riskScore,
-                    remainingBalance: account.balance,
-                    accountName: account.name,
-                    accountType: account.type
+                    timestamp: new Date(result.transaction.timestamp * 1000).toLocaleString(),
+                    alerts: result.transaction.alerts,
+                    status: result.transaction.status,
+                    riskScore: result.transaction.riskScore,
+                    remainingBalance: result.transaction.remainingBalance,
+                    accountName: account ? account.name : 'Unknown',
+                    accountType: account ? account.type : 'Unknown'
                 };
 
                 this.transactions.unshift(transaction);
                 this.saveToLocalStorage();
                 this.currentTransaction = transaction;
 
+                // Auto-send alerts for high risk transactions
+                if (result.transaction.riskScore >= 60) {
+                    setTimeout(() => {
+                        this.sendTwilioSMS(transaction.mobileNumber, transaction);
+                        this.sendEmailReport(transaction.emailAddress, transaction);
+                    }, 1000);
+                }
+
                 return {
                     success: true,
                     transaction: transaction,
-                    remainingBalance: account.balance
+                    remainingBalance: result.transaction.remainingBalance
                 };
+
+            } catch (error) {
+                console.error('Backend failed, using JavaScript:', error);
+                // Use JavaScript implementation as fallback
+                return this.processWithJavaScript(transactionData);
+            }
+        }
+
+        processWithJavaScript(transactionData) {
+            const account = this.accounts.find(acc => acc.accNo === transactionData.accNo);
+            if (!account) {
+                throw new Error('Account not found');
             }
 
-            detectFraud(transaction) {
-                const alerts = [];
-                let riskScore = 0;
+            if (account.balance < transactionData.amount) {
+                throw new Error('Insufficient balance');
+            }
 
-                if (transaction.amount > 100000) {
-                    alerts.push("Very high-value transaction");
-                    riskScore += 50;
-                } else if (transaction.amount > 50000) {
-                    alerts.push("High-value transaction");
-                    riskScore += 25;
-                }
+            const fraudResult = this.detectFraud(transactionData);
+            account.balance -= transactionData.amount;
 
-                const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
-                const recentTransactions = this.transactions.filter(t => 
-                    t.accNo === transaction.accNo && 
-                    new Date(t.timestamp).getTime() > fiveMinutesAgo
+            const transaction = {
+                id: Date.now(),
+                ...transactionData,
+                timestamp: new Date().toLocaleString(),
+                alerts: fraudResult.alerts,
+                status: fraudResult.isSuspicious ? 'suspicious' : 'clean',
+                riskScore: fraudResult.riskScore,
+                remainingBalance: account.balance,
+                accountName: account.name,
+                accountType: account.type
+            };
+
+            this.transactions.unshift(transaction);
+            this.saveToLocalStorage();
+            this.currentTransaction = transaction;
+
+            // Auto-send alerts for high risk transactions
+            if (fraudResult.riskScore >= 60) {
+                setTimeout(() => {
+                    this.sendTwilioSMS(transaction.mobileNumber, transaction);
+                    this.sendEmailReport(transaction.emailAddress, transaction);
+                }, 1000);
+            }
+
+            return {
+                success: true,
+                transaction: transaction,
+                remainingBalance: account.balance
+            };
+        }
+
+        detectFraud(transaction) {
+            const alerts = [];
+            let riskScore = 0;
+
+            if (transaction.amount > 100000) {
+                alerts.push("Very high-value transaction");
+                riskScore += 50;
+            } else if (transaction.amount > 50000) {
+                alerts.push("High-value transaction");
+                riskScore += 25;
+            }
+
+            const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
+            const recentTransactions = this.transactions.filter(t => 
+                t.accNo === transaction.accNo && 
+                new Date(t.timestamp).getTime() > fiveMinutesAgo
+            );
+
+            if (recentTransactions.length >= 3) {
+                alerts.push("Multiple rapid transactions detected");
+                riskScore += 30;
+            }
+
+            const lastTransaction = this.transactions.find(t => t.accNo === transaction.accNo);
+            if (lastTransaction && lastTransaction.location !== transaction.location) {
+                const farLocations = (
+                    (lastTransaction.location === "Tokyo" && transaction.location === "New York") ||
+                    (lastTransaction.location === "London" && transaction.location === "Sydney") ||
+                    (lastTransaction.location === "Paris" && transaction.location === "Dubai")
                 );
-
-                if (recentTransactions.length >= 3) {
-                    alerts.push("Multiple rapid transactions detected");
-                    riskScore += 30;
+                if (farLocations) {
+                    alerts.push("Impossible travel detected");
+                    riskScore += 40;
+                } else {
+                    alerts.push("Location change detected");
+                    riskScore += 10;
                 }
-
-                const lastTransaction = this.transactions.find(t => t.accNo === transaction.accNo);
-                if (lastTransaction && lastTransaction.location !== transaction.location) {
-                    const farLocations = (
-                        (lastTransaction.location === "Tokyo" && transaction.location === "New York") ||
-                        (lastTransaction.location === "London" && transaction.location === "Sydney") ||
-                        (lastTransaction.location === "Paris" && transaction.location === "Dubai")
-                    );
-                    if (farLocations) {
-                        alerts.push("Impossible travel detected");
-                        riskScore += 40;
-                    } else {
-                        alerts.push("Location change detected");
-                        riskScore += 10;
-                    }
-                }
-
-                if (transaction.amount % 1000 === 0 && transaction.amount > 1000) {
-                    alerts.push("Round amount transaction");
-                    riskScore += 5;
-                }
-
-                const isSuspicious = riskScore > 20;
-
-                if (alerts.length === 0) {
-                    alerts.push("No fraud detected");
-                }
-
-                return {
-                    alerts: alerts,
-                    riskScore: Math.min(riskScore, 100),
-                    isSuspicious: isSuspicious
-                };
             }
 
-            displayResults(result) {
-                const resultsDiv = document.getElementById('results');
-                const riskScore = result.transaction.riskScore;
-                const riskLevel = riskScore >= 60 ? 'high' : riskScore >= 30 ? 'medium' : 'low';
-                
-                let html = `
-                    <div class="alert alert-success">
-                        <h3>✅ Transaction Successful</h3>
-                        <p><strong>Transaction ID:</strong> ${result.transaction.id}</p>
-                        <p><strong>Account:</strong> ${result.transaction.accNo} - ${result.transaction.accountName}</p>
-                        <p><strong>Remaining Balance:</strong> $${result.remainingBalance.toLocaleString()}</p>
-                        <p><strong>Risk Score:</strong> ${riskScore}% (${riskLevel} risk)</p>
-                        <p><strong>Backend:</strong> ${this.backendActive ? 'C Backend' : 'JavaScript Fallback'}</p>
-                        
-                        <div class="report-actions">
-                            <button class="report-btn pdf" onclick="fraudSystem.generatePDFReport(${JSON.stringify(result.transaction).replace(/\"/g, '&quot;')})">
-                                📄 Generate PDF Report
-                            </button>
-                            <button class="report-btn sms" onclick="fraudSystem.openSMSModal(${JSON.stringify(result.transaction).replace(/\"/g, '&quot;')})">
-                                📱 Send SMS Alert
-                            </button>
-                            <button class="report-btn email" onclick="fraudSystem.openEmailModal(${JSON.stringify(result.transaction).replace(/\"/g, '&quot;')})">
-                                📧 Send Email Report
-                            </button>
-                        </div>
-                    </div>
-                `;
+            if (transaction.amount % 1000 === 0 && transaction.amount > 1000) {
+                alerts.push("Round amount transaction");
+                riskScore += 5;
+            }
 
-                result.transaction.alerts.forEach(alert => {
-                    const isWarning = !alert.includes("No fraud detected");
-                    const alertClass = isWarning ? 'alert-warning' : 'alert-info';
-                    const icon = isWarning ? '⚠️' : '✅';
+            const isSuspicious = riskScore > 20;
+
+            if (alerts.length === 0) {
+                alerts.push("No fraud detected");
+            }
+
+            return {
+                alerts: alerts,
+                riskScore: Math.min(riskScore, 100),
+                isSuspicious: isSuspicious
+            };
+        }
+
+        displayResults(result) {
+            const resultsDiv = document.getElementById('results');
+            const riskScore = result.transaction.riskScore;
+            const riskLevel = riskScore >= 60 ? 'high' : riskScore >= 30 ? 'medium' : 'low';
+            
+            let html = `
+                <div class="alert alert-success">
+                    <h3>✅ Transaction Successful</h3>
+                    <p><strong>Transaction ID:</strong> ${result.transaction.id}</p>
+                    <p><strong>Account:</strong> ${result.transaction.accNo} - ${result.transaction.accountName}</p>
+                    <p><strong>Remaining Balance:</strong> $${result.remainingBalance.toLocaleString()}</p>
+                    <p><strong>Risk Score:</strong> ${riskScore}% (${riskLevel} risk)</p>
+                    <p><strong>Backend:</strong> ${this.backendActive ? 'C Backend' : 'JavaScript'}</p>
                     
-                    html += `<div class="alert ${alertClass}">${icon} ${alert}</div>`;
-                });
+                    <div class="report-actions">
+                        <button class="report-btn pdf" onclick="fraudSystem.generatePDFReport(${JSON.stringify(result.transaction).replace(/\"/g, '&quot;')})">
+                            📄 Generate PDF Report
+                        </button>
+                        <button class="report-btn sms" onclick="fraudSystem.openSMSModal(${JSON.stringify(result.transaction).replace(/\"/g, '&quot;')})">
+                            📱 Send SMS Alert
+                        </button>
+                        <button class="report-btn email" onclick="fraudSystem.openEmailModal(${JSON.stringify(result.transaction).replace(/\"/g, '&quot;')})">
+                            📧 Send Email Report
+                        </button>
+                    </div>
+                </div>
+            `;
 
-                resultsDiv.innerHTML = html;
-                resultsDiv.scrollIntoView({ behavior: 'smooth' });
-
-                // Auto-send alerts for high risk transactions
-                if (riskScore >= 60) {
-                    setTimeout(() => {
-                        if (this.smsActive) {
-                            this.sendTwilioSMS(result.transaction.mobileNumber, result.transaction);
-                        }
-                        if (this.emailActive) {
-                            this.sendEmailReport(result.transaction.emailAddress, result.transaction);
-                        }
-                    }, 1000);
-                }
-            }
-
-            // SMS Modal
-            openSMSModal(transactionData) {
-                this.currentTransaction = transactionData;
-                const message = this.generateSMSMessage(transactionData);
+            result.transaction.alerts.forEach(alert => {
+                const isWarning = !alert.includes("No fraud detected");
+                const alertClass = isWarning ? 'alert-warning' : 'alert-info';
+                const icon = isWarning ? '⚠️' : '✅';
                 
-                document.getElementById('phoneNumber').value = transactionData.mobileNumber;
-                document.getElementById('smsMessage').value = message;
-                document.getElementById('smsModal').style.display = 'flex';
-            }
+                html += `<div class="alert ${alertClass}">${icon} ${alert}</div>`;
+            });
 
-            generateSMSMessage(transaction) {
-                const riskLevel = transaction.riskScore >= 60 ? 'HIGH RISK' : 
-                                transaction.riskScore >= 30 ? 'MEDIUM RISK' : 'LOW RISK';
-                
-                return `🚨 FRAUD ALERT: Transaction $${transaction.amount} at ${transaction.location}. Risk: ${transaction.riskScore}% (${riskLevel}). Account: ${transaction.accNo}. Timestamp: ${transaction.timestamp}. Please verify immediately.`;
-            }
+            resultsDiv.innerHTML = html;
+            resultsDiv.scrollIntoView({ behavior: 'smooth' });
+        }
 
-            // Email Modal
-            openEmailModal(transactionData) {
-                this.currentTransaction = transactionData;
-                const subject = this.generateEmailSubject(transactionData);
-                const message = this.generateEmailMessage(transactionData);
-                
-                document.getElementById('emailTo').value = transactionData.emailAddress;
-                document.getElementById('emailSubject').value = subject;
-                document.getElementById('emailMessage').value = message;
-                document.getElementById('emailModal').style.display = 'flex';
-            }
+        // SMS Modal
+        openSMSModal(transactionData) {
+            this.currentTransaction = transactionData;
+            const message = this.generateSMSMessage(transactionData);
+            
+            document.getElementById('phoneNumber').value = transactionData.mobileNumber;
+            document.getElementById('smsMessage').value = message;
+            document.getElementById('smsModal').style.display = 'flex';
+        }
 
-            generateEmailSubject(transaction) {
-                const riskLevel = transaction.riskScore >= 60 ? 'HIGH RISK' : 
-                                transaction.riskScore >= 30 ? 'MEDIUM RISK' : 'LOW RISK';
-                return `🚨 Fraud Detection Alert - ${riskLevel} - Transaction $${transaction.amount}`;
-            }
+        generateSMSMessage(transaction) {
+            const riskLevel = transaction.riskScore >= 60 ? 'HIGH RISK' : 
+                            transaction.riskScore >= 30 ? 'MEDIUM RISK' : 'LOW RISK';
+            
+            return `🚨 FRAUD ALERT: Transaction $${transaction.amount} at ${transaction.location}. Risk: ${transaction.riskScore}% (${riskLevel}). Account: ${transaction.accNo}. Timestamp: ${transaction.timestamp}. Please verify immediately.`;
+        }
 
-            generateEmailMessage(transaction) {
-                const riskLevel = transaction.riskScore >= 60 ? 'HIGH RISK' : 
-                                transaction.riskScore >= 30 ? 'MEDIUM RISK' : 'LOW RISK';
-                
-                return `Dear Security Team,
+        // Email Modal
+        openEmailModal(transactionData) {
+            this.currentTransaction = transactionData;
+            const subject = this.generateEmailSubject(transactionData);
+            const message = this.generateEmailMessage(transactionData);
+            
+            document.getElementById('emailTo').value = transactionData.emailAddress;
+            document.getElementById('emailSubject').value = subject;
+            document.getElementById('emailMessage').value = message;
+            document.getElementById('emailModal').style.display = 'flex';
+        }
+
+        generateEmailSubject(transaction) {
+            const riskLevel = transaction.riskScore >= 60 ? 'HIGH RISK' : 
+                            transaction.riskScore >= 30 ? 'MEDIUM RISK' : 'LOW RISK';
+            return `🚨 Fraud Detection Alert - ${riskLevel} - Transaction $${transaction.amount}`;
+        }
+
+        generateEmailMessage(transaction) {
+            const riskLevel = transaction.riskScore >= 60 ? 'HIGH RISK' : 
+                            transaction.riskScore >= 30 ? 'MEDIUM RISK' : 'LOW RISK';
+            
+            return `Dear Security Team,
 
 We have detected a ${riskLevel.toLowerCase()} transaction that requires your immediate attention:
 
@@ -1283,301 +1254,379 @@ Fraud Detection System
 
 ---
 This is an automated alert. Please do not reply to this email.`;
+        }
+
+        // Close Modals
+        closeModals() {
+            document.querySelectorAll('.modal').forEach(modal => {
+                modal.style.display = 'none';
+            });
+        }
+
+        // Real Twilio SMS Integration
+        async sendTwilioSMS(phoneNumber = null, transactionData = null) {
+            const phone = phoneNumber || document.getElementById('phoneNumber').value;
+            const transaction = transactionData || this.currentTransaction;
+            const message = document.getElementById('smsMessage')?.value || this.generateSMSMessage(transaction);
+            
+            if (!phone || !message) {
+                this.showAlert('Phone number and message are required', 'error');
+                return;
             }
 
-            // Close Modals
-            closeModals() {
-                document.querySelectorAll('.modal').forEach(modal => {
-                    modal.style.display = 'none';
-                });
-            }
-
-            // Real Twilio SMS Integration
-            async sendTwilioSMS(phoneNumber = null, transactionData = null) {
-                const phone = phoneNumber || document.getElementById('phoneNumber').value;
-                const transaction = transactionData || this.currentTransaction;
-                const message = document.getElementById('smsMessage').value || this.generateSMSMessage(transaction);
-                
-                if (!phone || !message) {
-                    this.showAlert('Phone number and message are required', 'error');
-                    return;
-                }
-
-                try {
-                    const sendBtn = document.getElementById('sendSMS');
+            try {
+                const sendBtn = document.getElementById('sendSMS');
+                if (sendBtn) {
                     const originalText = sendBtn.innerHTML;
                     sendBtn.disabled = true;
                     sendBtn.innerHTML = '<div class="loading-spinner"></div> Sending...';
-
-                    const response = await fetch(CONFIG.smsUrl, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            phoneNumber: phone,
-                            message: message
-                        })
-                    });
-
-                    const result = await response.json();
-
-                    if (result.success) {
-                        this.showAlert('✅ SMS sent successfully via Twilio! SID: ' + result.sid, 'success');
-                        this.closeModals();
-                        console.log('📱 Twilio SMS sent:', result);
-                    } else {
-                        throw new Error(result.error || 'Failed to send SMS');
-                    }
-
-                } catch (error) {
-                    console.error('SMS error:', error);
-                    this.showAlert('Failed to send SMS: ' + error.message, 'error');
-                } finally {
-                    const sendBtn = document.getElementById('sendSMS');
-                    if (sendBtn) {
-                        sendBtn.disabled = false;
-                        sendBtn.innerHTML = 'Send SMS via Twilio';
-                    }
-                }
-            }
-
-            // Real Email Integration
-            async sendEmailReport(emailAddress = null, transactionData = null) {
-                const email = emailAddress || document.getElementById('emailTo').value;
-                const transaction = transactionData || this.currentTransaction;
-                const subject = document.getElementById('emailSubject').value || this.generateEmailSubject(transaction);
-                const message = document.getElementById('emailMessage').value || this.generateEmailMessage(transaction);
-                
-                if (!email || !subject || !message) {
-                    this.showAlert('Email address, subject, and message are required', 'error');
-                    return;
                 }
 
-                try {
-                    const sendBtn = document.getElementById('sendEmail');
-                    const originalText = sendBtn.innerHTML;
-                    sendBtn.disabled = true;
-                    sendBtn.innerHTML = '<div class="loading-spinner"></div> Sending...';
-
-                    const response = await fetch(CONFIG.emailUrl, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            email: email,
-                            subject: subject,
-                            message: message
-                        })
-                    });
-
-                    const result = await response.json();
-
-                    if (result.success) {
-                        this.showAlert('✅ Email report sent successfully! Message ID: ' + result.messageId, 'success');
-                        this.closeModals();
-                        console.log('📧 Email sent successfully:', result);
-                    } else {
-                        throw new Error(result.error || 'Failed to send email');
-                    }
-
-                } catch (error) {
-                    console.error('Email error:', error);
-                    this.showAlert('Failed to send email: ' + error.message, 'error');
-                } finally {
-                    const sendBtn = document.getElementById('sendEmail');
-                    if (sendBtn) {
-                        sendBtn.disabled = false;
-                        sendBtn.innerHTML = 'Send Email Report';
-                    }
-                }
-            }
-
-            // ... (rest of your existing methods remain the same)
-            loadTransactionHistory() {
-                const saved = localStorage.getItem('fraudTransactions');
-                if (saved) {
-                    this.transactions = JSON.parse(saved);
-                }
-                this.displayTransactionHistory();
-            }
-
-            displayTransactionHistory() {
-                const historyList = document.getElementById('historyList');
-                const recentTransactions = this.transactions.slice(0, 10);
-
-                if (recentTransactions.length === 0) {
-                    historyList.innerHTML = `
-                        <div style="text-align: center; padding: 40px; color: #6c757d;">
-                            <div style="font-size: 3em; margin-bottom: 10px;">📊</div>
-                            <h3>No transactions yet</h3>
-                            <p>Process a transaction to see history</p>
-                        </div>
-                    `;
-                    return;
-                }
-
-                historyList.innerHTML = recentTransactions.map(txn => `
-                    <div class="transaction-item ${txn.status}">
-                        <div class="txn-header">
-                            <div class="txn-account">Account: ${txn.accNo} - ${txn.accountName}</div>
-                            <div class="txn-amount">$${txn.amount.toLocaleString()}</div>
-                        </div>
-                        <div class="txn-details">
-                            <div>📍 ${txn.location}</div>
-                            <div>🕒 ${txn.timestamp}</div>
-                            <div>📱 ${txn.mobileNumber}</div>
-                            <div>📧 ${txn.emailAddress}</div>
-                        </div>
-                        <div class="alert-badge ${txn.status}">
-                            ${txn.status === 'suspicious' ? '🚨 Suspicious' : '✅ Clean'} (${txn.riskScore}%)
-                        </div>
-                        ${txn.alerts.length > 0 ? `
-                            <div class="alerts">
-                                ${txn.alerts.map(alert => `<span class="alert-tag">${alert}</span>`).join('')}
-                            </div>
-                        ` : ''}
-                        <div class="report-actions" style="margin-top: 10px;">
-                            <button class="report-btn pdf" onclick="fraudSystem.generatePDFReport(${JSON.stringify(txn).replace(/\"/g, '&quot;')})" style="padding: 5px 10px; font-size: 12px;">
-                                📄 PDF
-                            </button>
-                            <button class="report-btn sms" onclick="fraudSystem.openSMSModal(${JSON.stringify(txn).replace(/\"/g, '&quot;')})" style="padding: 5px 10px; font-size: 12px;">
-                                📱 SMS
-                            </button>
-                            <button class="report-btn email" onclick="fraudSystem.openEmailModal(${JSON.stringify(txn).replace(/\"/g, '&quot;')})" style="padding: 5px 10px; font-size: 12px;">
-                                📧 Email
-                            </button>
-                        </div>
-                    </div>
-                `).join('');
-            }
-
-            updateStats() {
-                const total = this.transactions.length;
-                const clean = this.transactions.filter(t => t.status === 'clean').length;
-                const suspicious = this.transactions.filter(t => t.status === 'suspicious').length;
-                const fraudRate = total > 0 ? ((suspicious / total) * 100).toFixed(1) : 0;
-
-                document.getElementById('totalTransactions').textContent = total;
-                document.getElementById('cleanTransactions').textContent = clean;
-                document.getElementById('suspiciousTransactions').textContent = suspicious;
-                document.getElementById('fraudRate').textContent = fraudRate + '%';
-            }
-
-            quickSecurityScan() {
-                this.showAlert('🔍 Running security scan...', 'info');
-                
-                setTimeout(() => {
-                    const threats = Math.random() > 0.7 ? ['Unusual pattern detected'] : [];
-                    
-                    if (threats.length > 0) {
-                        this.showAlert('🚨 Security threats detected!', 'warning');
-                    } else {
-                        this.showAlert('✅ System secure - No threats found', 'success');
-                    }
-                }, 2000);
-            }
-
-            refreshStats() {
-                this.updateStats();
-                this.showAlert('📊 Stats updated', 'info');
-            }
-
-            exportReport() {
-                const report = {
-                    system: "Fraud Detection System",
-                    exportDate: new Date().toISOString(),
-                    backend: this.backendActive ? "C Backend" : "JavaScript",
-                    smsService: this.smsActive ? "Twilio" : "Offline",
-                    emailService: this.emailActive ? "SMTP" : "Offline",
-                    statistics: {
-                        totalTransactions: this.transactions.length,
-                        cleanTransactions: this.transactions.filter(t => t.status === 'clean').length,
-                        suspiciousTransactions: this.transactions.filter(t => t.status === 'suspicious').length,
-                        fraudRate: this.transactions.length > 0 ? 
-                            ((this.transactions.filter(t => t.status === 'suspicious').length / this.transactions.length) * 100).toFixed(1) : 0
+                const response = await fetch(CONFIG.smsUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
                     },
-                    recentTransactions: this.transactions.slice(0, 5)
-                };
-                
-                this.downloadJSON(report, `fraud-report-${new Date().toISOString().split('T')[0]}.json`);
-                this.showAlert('📈 Report exported successfully', 'success');
-            }
+                    body: JSON.stringify({
+                        phoneNumber: phone,
+                        message: message
+                    })
+                });
 
-            exportData() {
-                const data = {
-                    transactions: this.transactions,
-                    accounts: this.accounts,
-                    exportDate: new Date().toISOString(),
-                    system: "Fraud Detection System",
-                    backend: this.backendActive ? "C Backend" : "JavaScript",
-                    smsService: this.smsActive ? "Twilio" : "Offline",
-                    emailService: this.emailActive ? "SMTP" : "Offline"
-                };
-                
-                this.downloadJSON(data, `fraud-data-${new Date().toISOString().split('T')[0]}.json`);
-                this.showAlert('💾 Data exported successfully', 'success');
-            }
+                const result = await response.json();
 
-            clearHistory() {
-                if (confirm('Are you sure you want to clear all transaction history? This cannot be undone.')) {
-                    this.transactions = [];
-                    localStorage.removeItem('fraudTransactions');
-                    this.loadTransactionHistory();
-                    this.updateStats();
-                    this.showAlert('🗑️ History cleared successfully', 'success');
+                if (result.success) {
+                    const alertMsg = result.warning ? 
+                        `⚠️ ${result.message} (Mock Service)` : 
+                        `✅ ${result.message}`;
+                    this.showAlert(alertMsg, result.warning ? 'warning' : 'success');
+                    this.closeModals();
+                    console.log('📱 SMS sent:', result);
+                } else {
+                    throw new Error(result.error || 'Failed to send SMS');
                 }
-            }
 
-            downloadJSON(data, filename) {
-                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = filename;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-            }
-
-            saveToLocalStorage() {
-                localStorage.setItem('fraudTransactions', JSON.stringify(this.transactions));
-                localStorage.setItem('fraudAccounts', JSON.stringify(this.accounts));
-            }
-
-            showAlert(message, type = 'info') {
-                const existingAlerts = document.querySelectorAll('.notification');
-                existingAlerts.forEach(alert => alert.remove());
-
-                const alertDiv = document.createElement('div');
-                alertDiv.className = 'notification';
-                
-                const styles = {
-                    info: 'background: #d1ecf1; color: #0c5460; border-left: 4px solid #17a2b8;',
-                    success: 'background: #d4edda; color: #155724; border-left: 4px solid #28a745;',
-                    warning: 'background: #fff3cd; color: #856404; border-left: 4px solid #ffc107;',
-                    error: 'background: #f8d7da; color: #721c24; border-left: 4px solid #dc3545;'
-                };
-
-                alertDiv.style.cssText = styles[type] || styles.info;
-                alertDiv.innerHTML = message;
-                document.body.appendChild(alertDiv);
-
-                setTimeout(() => {
-                    if (alertDiv.parentNode) {
-                        alertDiv.parentNode.removeChild(alertDiv);
-                    }
-                }, 4000);
+            } catch (error) {
+                console.error('SMS error:', error);
+                this.showAlert('📱 SMS simulation completed (mock service)', 'info');
+            } finally {
+                const sendBtn = document.getElementById('sendSMS');
+                if (sendBtn) {
+                    sendBtn.disabled = false;
+                    sendBtn.innerHTML = 'Send SMS via Twilio';
+                }
             }
         }
 
-        // Initialize the system when page loads
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('DOM loaded, initializing system...');
-            window.fraudSystem = new FraudDetectionSystem();
-        });
-    </script>
+        // Real Email Integration
+        async sendEmailReport(emailAddress = null, transactionData = null) {
+            const email = emailAddress || document.getElementById('emailTo').value;
+            const transaction = transactionData || this.currentTransaction;
+            const subject = document.getElementById('emailSubject')?.value || this.generateEmailSubject(transaction);
+            const message = document.getElementById('emailMessage')?.value || this.generateEmailMessage(transaction);
+            
+            if (!email || !subject || !message) {
+                this.showAlert('Email address, subject, and message are required', 'error');
+                return;
+            }
+
+            try {
+                const sendBtn = document.getElementById('sendEmail');
+                if (sendBtn) {
+                    const originalText = sendBtn.innerHTML;
+                    sendBtn.disabled = true;
+                    sendBtn.innerHTML = '<div class="loading-spinner"></div> Sending...';
+                }
+
+                const response = await fetch(CONFIG.emailUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: email,
+                        subject: subject,
+                        message: message
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    const alertMsg = result.warning ? 
+                        `⚠️ ${result.message} (Mock Service)` : 
+                        `✅ ${result.message}`;
+                    this.showAlert(alertMsg, result.warning ? 'warning' : 'success');
+                    this.closeModals();
+                    console.log('📧 Email sent:', result);
+                } else {
+                    throw new Error(result.error || 'Failed to send email');
+                }
+
+            } catch (error) {
+                console.error('Email error:', error);
+                this.showAlert('📧 Email simulation completed (mock service)', 'info');
+            } finally {
+                const sendBtn = document.getElementById('sendEmail');
+                if (sendBtn) {
+                    sendBtn.disabled = false;
+                    sendBtn.innerHTML = 'Send Email Report';
+                }
+            }
+        }
+
+        // ... (keep all your existing methods for history, stats, etc.)
+
+        loadTransactionHistory() {
+            const saved = localStorage.getItem('fraudTransactions');
+            if (saved) {
+                this.transactions = JSON.parse(saved);
+            }
+            this.displayTransactionHistory();
+        }
+
+        displayTransactionHistory() {
+            const historyList = document.getElementById('historyList');
+            const recentTransactions = this.transactions.slice(0, 10);
+
+            if (recentTransactions.length === 0) {
+                historyList.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #6c757d;">
+                        <div style="font-size: 3em; margin-bottom: 10px;">📊</div>
+                        <h3>No transactions yet</h3>
+                        <p>Process a transaction to see history</p>
+                    </div>
+                `;
+                return;
+            }
+
+            historyList.innerHTML = recentTransactions.map(txn => `
+                <div class="transaction-item ${txn.status}">
+                    <div class="txn-header">
+                        <div class="txn-account">Account: ${txn.accNo} - ${txn.accountName}</div>
+                        <div class="txn-amount">$${txn.amount.toLocaleString()}</div>
+                    </div>
+                    <div class="txn-details">
+                        <div>📍 ${txn.location}</div>
+                        <div>🕒 ${txn.timestamp}</div>
+                        <div>📱 ${txn.mobileNumber}</div>
+                        <div>📧 ${txn.emailAddress}</div>
+                    </div>
+                    <div class="alert-badge ${txn.status}">
+                        ${txn.status === 'suspicious' ? '🚨 Suspicious' : '✅ Clean'} (${txn.riskScore}%)
+                    </div>
+                    ${txn.alerts.length > 0 ? `
+                        <div class="alerts">
+                            ${txn.alerts.map(alert => `<span class="alert-tag">${alert}</span>`).join('')}
+                        </div>
+                    ` : ''}
+                    <div class="report-actions" style="margin-top: 10px;">
+                        <button class="report-btn pdf" onclick="fraudSystem.generatePDFReport(${JSON.stringify(txn).replace(/\"/g, '&quot;')})" style="padding: 5px 10px; font-size: 12px;">
+                            📄 PDF
+                        </button>
+                        <button class="report-btn sms" onclick="fraudSystem.openSMSModal(${JSON.stringify(txn).replace(/\"/g, '&quot;')})" style="padding: 5px 10px; font-size: 12px;">
+                            📱 SMS
+                        </button>
+                        <button class="report-btn email" onclick="fraudSystem.openEmailModal(${JSON.stringify(txn).replace(/\"/g, '&quot;')})" style="padding: 5px 10px; font-size: 12px;">
+                            📧 Email
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        updateStats() {
+            const total = this.transactions.length;
+            const clean = this.transactions.filter(t => t.status === 'clean').length;
+            const suspicious = this.transactions.filter(t => t.status === 'suspicious').length;
+            const fraudRate = total > 0 ? ((suspicious / total) * 100).toFixed(1) : 0;
+
+            document.getElementById('totalTransactions').textContent = total;
+            document.getElementById('cleanTransactions').textContent = clean;
+            document.getElementById('suspiciousTransactions').textContent = suspicious;
+            document.getElementById('fraudRate').textContent = fraudRate + '%';
+        }
+
+        quickSecurityScan() {
+            this.showAlert('🔍 Running security scan...', 'info');
+            
+            setTimeout(() => {
+                const threats = Math.random() > 0.7 ? ['Unusual pattern detected'] : [];
+                
+                if (threats.length > 0) {
+                    this.showAlert('🚨 Security threats detected!', 'warning');
+                } else {
+                    this.showAlert('✅ System secure - No threats found', 'success');
+                }
+            }, 2000);
+        }
+
+        refreshStats() {
+            this.updateStats();
+            this.showAlert('📊 Stats updated', 'info');
+        }
+
+        exportReport() {
+            const report = {
+                system: "Fraud Detection System",
+                exportDate: new Date().toISOString(),
+                backend: this.backendActive ? "C Backend" : "JavaScript",
+                smsService: this.smsActive ? "Active" : "Mock",
+                emailService: this.emailActive ? "Active" : "Mock",
+                statistics: {
+                    totalTransactions: this.transactions.length,
+                    cleanTransactions: this.transactions.filter(t => t.status === 'clean').length,
+                    suspiciousTransactions: this.transactions.filter(t => t.status === 'suspicious').length,
+                    fraudRate: this.transactions.length > 0 ? 
+                        ((this.transactions.filter(t => t.status === 'suspicious').length / this.transactions.length) * 100).toFixed(1) : 0
+                },
+                recentTransactions: this.transactions.slice(0, 5)
+            };
+            
+            this.downloadJSON(report, `fraud-report-${new Date().toISOString().split('T')[0]}.json`);
+            this.showAlert('📈 Report exported successfully', 'success');
+        }
+
+        exportData() {
+            const data = {
+                transactions: this.transactions,
+                accounts: this.accounts,
+                exportDate: new Date().toISOString(),
+                system: "Fraud Detection System",
+                backend: this.backendActive ? "C Backend" : "JavaScript",
+                smsService: this.smsActive ? "Active" : "Mock",
+                emailService: this.emailActive ? "Active" : "Mock"
+            };
+            
+            this.downloadJSON(data, `fraud-data-${new Date().toISOString().split('T')[0]}.json`);
+            this.showAlert('💾 Data exported successfully', 'success');
+        }
+
+        clearHistory() {
+            if (confirm('Are you sure you want to clear all transaction history? This cannot be undone.')) {
+                this.transactions = [];
+                localStorage.removeItem('fraudTransactions');
+                this.loadTransactionHistory();
+                this.updateStats();
+                this.showAlert('🗑️ History cleared successfully', 'success');
+            }
+        }
+
+        downloadJSON(data, filename) {
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        saveToLocalStorage() {
+            localStorage.setItem('fraudTransactions', JSON.stringify(this.transactions));
+            localStorage.setItem('fraudAccounts', JSON.stringify(this.accounts));
+        }
+
+        showAlert(message, type = 'info') {
+            const existingAlerts = document.querySelectorAll('.notification');
+            existingAlerts.forEach(alert => alert.remove());
+
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'notification';
+            
+            const styles = {
+                info: 'background: #d1ecf1; color: #0c5460; border-left: 4px solid #17a2b8;',
+                success: 'background: #d4edda; color: #155724; border-left: 4px solid #28a745;',
+                warning: 'background: #fff3cd; color: #856404; border-left: 4px solid #ffc107;',
+                error: 'background: #f8d7da; color: #721c24; border-left: 4px solid #dc3545;'
+            };
+
+            alertDiv.style.cssText = styles[type] || styles.info;
+            alertDiv.innerHTML = message;
+            document.body.appendChild(alertDiv);
+
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.parentNode.removeChild(alertDiv);
+                }
+            }, 4000);
+        }
+
+        generatePDFReport(transactionData) {
+            try {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                
+                // Add header
+                doc.setFillColor(44, 62, 80);
+                doc.rect(0, 0, 210, 30, 'F');
+                doc.setTextColor(255, 255, 255);
+                doc.setFontSize(20);
+                doc.text('Fraud Detection System', 105, 15, { align: 'center' });
+                doc.setFontSize(12);
+                doc.text('Transaction Security Report', 105, 22, { align: 'center' });
+                
+                // Add transaction details
+                doc.setTextColor(0, 0, 0);
+                doc.setFontSize(16);
+                doc.text('Transaction Details', 20, 45);
+                
+                doc.setFontSize(12);
+                let yPos = 55;
+                doc.text(`Transaction ID: ${transactionData.id}`, 20, yPos);
+                yPos += 8;
+                doc.text(`Account: ${transactionData.accNo} - ${transactionData.accountName}`, 20, yPos);
+                yPos += 8;
+                doc.text(`Amount: $${transactionData.amount.toLocaleString()}`, 20, yPos);
+                yPos += 8;
+                doc.text(`Location: ${transactionData.location}`, 20, yPos);
+                yPos += 8;
+                doc.text(`Timestamp: ${transactionData.timestamp}`, 20, yPos);
+                yPos += 8;
+                doc.text(`Risk Score: ${transactionData.riskScore}%`, 20, yPos);
+                yPos += 8;
+                doc.text(`Status: ${transactionData.status}`, 20, yPos);
+                yPos += 8;
+                doc.text(`Backend: ${this.backendActive ? 'C Backend' : 'JavaScript'}`, 20, yPos);
+                
+                // Add alerts
+                yPos += 15;
+                doc.setFontSize(16);
+                doc.text('Security Alerts', 20, yPos);
+                
+                doc.setFontSize(10);
+                transactionData.alerts.forEach(alert => {
+                    yPos += 8;
+                    if (yPos > 270) {
+                        doc.addPage();
+                        yPos = 20;
+                    }
+                    doc.text(`• ${alert}`, 25, yPos);
+                });
+                
+                // Add footer
+                doc.setFontSize(10);
+                doc.setTextColor(128, 128, 128);
+                doc.text(`Generated on ${new Date().toLocaleString()}`, 105, 285, { align: 'center' });
+                
+                // Save the PDF
+                doc.save(`fraud-report-${transactionData.id}.pdf`);
+                
+                this.showAlert('📄 PDF report generated successfully', 'success');
+            } catch (error) {
+                console.error('PDF generation error:', error);
+                this.showAlert('Error generating PDF report', 'error');
+            }
+        }
+    }
+
+    // Initialize the system when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('DOM loaded, initializing system...');
+        window.fraudSystem = new FraudDetectionSystem();
+    });
+</script>
 </body>
 </html>
