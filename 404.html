@@ -6,6 +6,7 @@
     <title>Fraud Detection System - REAL SMS ALERTS</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
+        /* Your existing CSS remains the same */
         * {
             margin: 0;
             padding: 0;
@@ -782,8 +783,8 @@
             </div>
             <div class="modal-body">
                 <div class="form-control">
-                    <label for="emailTo">Email Address</label>
-                    <input type="email" id="emailTo" placeholder="your@email.com" value="your@email.com">
+                    <label for="emailAddress">Email Address</label>
+                    <input type="email" id="emailAddress" placeholder="your@email.com" value="your@email.com">
                 </div>
                 <div class="form-control">
                     <label for="emailSubject">Subject</label>
@@ -802,17 +803,13 @@
     </div>
 
     <script>
-        // Enhanced configuration with REAL endpoints
+        // Enhanced configuration with REAL Twilio endpoints
         const CONFIG = {
-            // REAL backend endpoints
+            // Replace these with your actual backend URLs
             backendUrl: 'http://localhost:3000/api/process-transaction',
             smsUrl: 'http://localhost:3000/api/send-sms',
             emailUrl: 'http://localhost:3000/api/send-email',
-            autoAlertUrl: 'http://localhost:3000/api/send-auto-alerts',
             testUrl: 'http://localhost:3000/api/test',
-            testTwilioUrl: 'http://localhost:3000/api/test-twilio',
-            testEmailUrl: 'http://localhost:3000/api/test-emailjs',
-            servicesConfigUrl: 'http://localhost:3000/api/services/config',
             
             accounts: [
                 { accNo: 100, name: "Alice Smith", balance: 150000, type: "Premium" },
@@ -824,46 +821,27 @@
             thresholds: {
                 highValue: 50000,
                 veryHighValue: 100000,
-                autoAlertThreshold: 60 // Risk score percentage for auto alerts
+                rapidTransactionCount: 3,
+                rapidTransactionMinutes: 5
             }
         };
 
-        // Enhanced Fraud Detection System with REAL SERVICES
+        // Enhanced Fraud Detection System with REAL Twilio SMS
         class FraudDetectionSystem {
             constructor() {
                 this.transactions = [];
                 this.accounts = JSON.parse(JSON.stringify(CONFIG.accounts));
                 this.currentTransaction = null;
                 this.backendActive = false;
-                this.smsActive = false;
-                this.emailActive = false;
                 this.init();
             }
 
             async init() {
-                console.log('🚀 Fraud Detection System Started - REAL SERVICES');
+                console.log('🚀 Fraud Detection System Started - REAL SMS');
                 this.setupEventListeners();
                 this.loadTransactionHistory();
                 this.updateStats();
-                await this.testAllServices();
-                await this.loadServicesConfig();
-            }
-
-            async loadServicesConfig() {
-                try {
-                    const response = await fetch(CONFIG.servicesConfigUrl);
-                    const config = await response.json();
-                    console.log('🔧 Services Configuration:', config);
-                    this.showAlert('✅ Real Twilio SMS & EmailJS services connected!', 'success');
-                } catch (error) {
-                    console.log('Service config load failed, using default');
-                }
-            }
-
-            async testAllServices() {
                 await this.testBackendConnection();
-                await this.testTwilioService();
-                await this.testEmailService();
             }
 
             async testBackendConnection() {
@@ -877,34 +855,6 @@
                 }
             }
 
-            async testTwilioService() {
-                try {
-                    const response = await fetch(CONFIG.testTwilioUrl);
-                    const result = await response.json();
-                    this.setSMSStatus(result.success);
-                    if (result.success) {
-                        console.log('✅ Twilio SMS: ACTIVE - Ready to send real SMS');
-                    }
-                } catch (error) {
-                    console.log('❌ Twilio service test failed');
-                    this.setSMSStatus(false);
-                }
-            }
-
-            async testEmailService() {
-                try {
-                    const response = await fetch(CONFIG.testEmailUrl);
-                    const result = await response.json();
-                    this.setEmailStatus(result.success);
-                    if (result.success) {
-                        console.log('✅ EmailJS: ACTIVE - Ready to send real emails');
-                    }
-                } catch (error) {
-                    console.log('❌ EmailJS service test failed');
-                    this.setEmailStatus(false);
-                }
-            }
-
             setBackendStatus(active) {
                 this.backendActive = active;
                 const statusElement = document.getElementById('backendStatus');
@@ -914,30 +864,6 @@
                 } else {
                     statusElement.className = 'status-badge status-inactive';
                     statusElement.innerHTML = '<span>⚠️ Frontend Only</span>';
-                }
-            }
-
-            setSMSStatus(active) {
-                this.smsActive = active;
-                const statusElement = document.getElementById('smsStatus');
-                if (active) {
-                    statusElement.className = 'status-badge status-active';
-                    statusElement.innerHTML = '<span>✅ Twilio SMS</span>';
-                } else {
-                    statusElement.className = 'status-badge status-inactive';
-                    statusElement.innerHTML = '<span>❌ SMS Offline</span>';
-                }
-            }
-
-            setEmailStatus(active) {
-                this.emailActive = active;
-                const statusElement = document.getElementById('emailStatus');
-                if (active) {
-                    statusElement.className = 'status-badge status-active';
-                    statusElement.innerHTML = '<span>✅ Email Service</span>';
-                } else {
-                    statusElement.className = 'status-badge status-inactive';
-                    statusElement.innerHTML = '<span>❌ Email Offline</span>';
                 }
             }
 
@@ -1042,7 +968,7 @@
                         throw new Error(result.error || 'Backend processing failed');
                     }
 
-                    // Create transaction object
+                    // Update account balance
                     const account = this.accounts.find(acc => acc.accNo === transactionData.accNo);
                     if (account) {
                         account.balance = result.transaction.remainingBalance;
@@ -1064,33 +990,11 @@
                     this.saveToLocalStorage();
                     this.currentTransaction = transaction;
 
-                    // AUTO-SEND REAL ALERTS for high risk transactions
-                    if (result.transaction.riskScore >= CONFIG.thresholds.autoAlertThreshold) {
-                        setTimeout(async () => {
-                            try {
-                                const alertResponse = await fetch(CONFIG.autoAlertUrl, {
-                                    method: 'POST',
-                                    headers: {
-                                        'Content-Type': 'application/json',
-                                    },
-                                    body: JSON.stringify({
-                                        transaction: {
-                                            ...transaction,
-                                            phone: transactionData.mobileNumber,
-                                            email: transactionData.emailAddress
-                                        }
-                                    })
-                                });
-
-                                const alertResult = await alertResponse.json();
-                                if (alertResult.success) {
-                                    console.log('🚨 Auto-alerts sent:', alertResult.results);
-                                    this.showAlert('📱 REAL SMS & Email alerts sent to your devices!', 'success');
-                                }
-                            } catch (alertError) {
-                                console.error('Auto-alert error:', alertError);
-                            }
-                        }, 1500);
+                    // Auto-send REAL SMS for high risk transactions
+                    if (result.transaction.riskScore >= 60) {
+                        setTimeout(() => {
+                            this.sendRealSMS(transaction.mobileNumber, transaction);
+                        }, 1000);
                     }
 
                     return {
@@ -1138,15 +1042,10 @@
                 this.saveToLocalStorage();
                 this.currentTransaction = transaction;
 
-                // Auto-send alerts for high risk transactions
+                // Auto-send REAL SMS for high risk transactions
                 if (fraudResult.riskScore >= 60) {
                     setTimeout(() => {
-                        if (this.smsActive) {
-                            this.sendRealSMS(transaction.mobileNumber, transaction);
-                        }
-                        if (this.emailActive) {
-                            this.sendRealEmail(transaction.emailAddress, transaction);
-                        }
+                        this.sendRealSMS(transaction.mobileNumber, transaction);
                     }, 1000);
                 }
 
@@ -1171,13 +1070,13 @@
                 }
 
                 // Rapid transactions check
-                const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
+                const fiveMinutesAgo = Date.now() - (CONFIG.thresholds.rapidTransactionMinutes * 60 * 1000);
                 const recentTransactions = this.transactions.filter(t => 
                     t.accNo === transaction.accNo && 
                     new Date(t.timestamp).getTime() > fiveMinutesAgo
                 );
 
-                if (recentTransactions.length >= 3) {
+                if (recentTransactions.length >= CONFIG.thresholds.rapidTransactionCount) {
                     alerts.push("Multiple rapid transactions detected");
                     riskScore += 30;
                 }
@@ -1368,7 +1267,7 @@
                 const subject = this.generateEmailSubject(transactionData);
                 const message = this.generateEmailMessage(transactionData);
                 
-                document.getElementById('emailTo').value = transactionData.emailAddress;
+                document.getElementById('emailAddress').value = transactionData.emailAddress;
                 document.getElementById('emailSubject').value = subject;
                 document.getElementById('emailMessage').value = message;
                 document.getElementById('emailModal').style.display = 'flex';
@@ -1440,6 +1339,7 @@ This is an automated alert. Please do not reply to this email.`;
                         sendBtn.innerHTML = '<div class="loading-spinner"></div> Sending...';
                     }
 
+                    // Send to your backend which will use Twilio
                     const response = await fetch(CONFIG.smsUrl, {
                         method: 'POST',
                         headers: {
@@ -1476,7 +1376,7 @@ This is an automated alert. Please do not reply to this email.`;
 
             // REAL Email Report
             async sendRealEmail(emailAddress = null, transactionData = null) {
-                const email = emailAddress || document.getElementById('emailTo').value;
+                const email = emailAddress || document.getElementById('emailAddress').value;
                 const transaction = transactionData || this.currentTransaction;
                 const subject = document.getElementById('emailSubject')?.value || this.generateEmailSubject(transaction);
                 const message = document.getElementById('emailMessage')?.value || this.generateEmailMessage(transaction);
@@ -1494,6 +1394,7 @@ This is an automated alert. Please do not reply to this email.`;
                         sendBtn.innerHTML = '<div class="loading-spinner"></div> Sending...';
                     }
 
+                    // Send to your backend which will use Email service
                     const response = await fetch(CONFIG.emailUrl, {
                         method: 'POST',
                         headers: {
@@ -1623,8 +1524,6 @@ This is an automated alert. Please do not reply to this email.`;
                     system: "Fraud Detection System",
                     exportDate: new Date().toISOString(),
                     backend: this.backendActive ? "Real API" : "Frontend Only",
-                    smsService: this.smsActive ? "Active" : "Inactive",
-                    emailService: this.emailActive ? "Active" : "Inactive",
                     statistics: {
                         totalTransactions: this.transactions.length,
                         cleanTransactions: this.transactions.filter(t => t.status === 'clean').length,
@@ -1645,9 +1544,7 @@ This is an automated alert. Please do not reply to this email.`;
                     accounts: this.accounts,
                     exportDate: new Date().toISOString(),
                     system: "Fraud Detection System",
-                    backend: this.backendActive ? "Real API" : "Frontend Only",
-                    smsService: this.smsActive ? "Active" : "Inactive",
-                    emailService: this.emailActive ? "Active" : "Inactive"
+                    backend: this.backendActive ? "Real API" : "Frontend Only"
                 };
                 
                 this.downloadJSON(data, `fraud-data-${new Date().toISOString().split('T')[0]}.json`);
