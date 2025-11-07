@@ -1,0 +1,23 @@
+{
+  "name": "fraud-detection-system",
+  "version": "1.0.0",
+  "description": "Fraud Detection System with C Backend and Web Interface",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "test": "echo \"No tests specified\" && exit 0"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  },
+  "keywords": [
+    "fraud-detection",
+    "c-backend",
+    "twilio",
+    "email",
+    "security"
+  ],
+  "author": "Fraud Detection System",
+  "license": "MIT"
+}
