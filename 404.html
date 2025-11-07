@@ -1191,7 +1191,123 @@
             resultsDiv.innerHTML = html;
             resultsDiv.scrollIntoView({ behavior: 'smooth' });
         }
+// Enhanced alert functions in the FraudDetectionSystem class
 
+async sendTwilioSMS(phoneNumber = null, transactionData = null) {
+    const phone = phoneNumber || document.getElementById('phoneNumber').value;
+    const transaction = transactionData || this.currentTransaction;
+    const message = document.getElementById('smsMessage')?.value || this.generateSMSMessage(transaction);
+    
+    if (!phone || !message) {
+        this.showAlert('Phone number and message are required', 'error');
+        return;
+    }
+
+    try {
+        const sendBtn = document.getElementById('sendSMS');
+        if (sendBtn) {
+            const originalText = sendBtn.innerHTML;
+            sendBtn.disabled = true;
+            sendBtn.innerHTML = '<div class="loading-spinner"></div> Sending...';
+        }
+
+        const response = await fetch(CONFIG.smsUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                phoneNumber: phone,
+                message: message
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            let alertMsg = `✅ SMS sent successfully`;
+            if (result.warning) {
+                alertMsg = `⚠️ ${result.message}`;
+            } else if (result.service === 'twilio') {
+                alertMsg = `✅ Real SMS sent via Twilio`;
+            }
+            this.showAlert(alertMsg, result.warning ? 'warning' : 'success');
+            this.closeModals();
+            console.log('📱 SMS result:', result);
+        } else {
+            throw new Error(result.error || 'Failed to send SMS');
+        }
+
+    } catch (error) {
+        console.error('SMS error:', error);
+        this.showAlert('❌ SMS failed: ' + error.message, 'error');
+    } finally {
+        const sendBtn = document.getElementById('sendSMS');
+        if (sendBtn) {
+            sendBtn.disabled = false;
+            sendBtn.innerHTML = 'Send SMS via Twilio';
+        }
+    }
+}
+
+async sendEmailReport(emailAddress = null, transactionData = null) {
+    const email = emailAddress || document.getElementById('emailTo').value;
+    const transaction = transactionData || this.currentTransaction;
+    const subject = document.getElementById('emailSubject')?.value || this.generateEmailSubject(transaction);
+    const message = document.getElementById('emailMessage')?.value || this.generateEmailMessage(transaction);
+    
+    if (!email || !subject || !message) {
+        this.showAlert('Email address, subject, and message are required', 'error');
+        return;
+    }
+
+    try {
+        const sendBtn = document.getElementById('sendEmail');
+        if (sendBtn) {
+            const originalText = sendBtn.innerHTML;
+            sendBtn.disabled = true;
+            sendBtn.innerHTML = '<div class="loading-spinner"></div> Sending...';
+        }
+
+        const response = await fetch(CONFIG.emailUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                email: email,
+                subject: subject,
+                message: message
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            let alertMsg = `✅ Email sent successfully`;
+            if (result.warning) {
+                alertMsg = `⚠️ ${result.message}`;
+            } else if (result.service === 'emailjs') {
+                alertMsg = `✅ Real email sent via EmailJS`;
+            }
+            this.showAlert(alertMsg, result.warning ? 'warning' : 'success');
+            this.closeModals();
+            console.log('📧 Email result:', result);
+        } else {
+            throw new Error(result.error || 'Failed to send email');
+        }
+
+    } catch (error) {
+        console.error('Email error:', error);
+        this.showAlert('❌ Email failed: ' + error.message, 'error');
+    } finally {
+        const sendBtn = document.getElementById('sendEmail');
+        if (sendBtn) {
+            sendBtn.disabled = false;
+            sendBtn.innerHTML = 'Send Email Report';
+        }
+    }
+}
         // SMS Modal
         openSMSModal(transactionData) {
             this.currentTransaction = transactionData;
