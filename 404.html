@@ -695,9 +695,7 @@
             <div class="backend-status">
                 <h4>🔧 Real Services Status</h4>
                 <div class="service-status">
-                    <div id="backendStatus" class="status-badge status-inactive">
-                        <span>❌ Backend Offline</span>
-                    </div>
+                    
                     <div id="smsStatus" class="status-badge status-inactive">
                         <span>❌ SMS Offline</span>
                     </div>
@@ -1317,19 +1315,16 @@ This is an automated alert. Please do not reply to this email.`;
 
             // REAL SMS Alert via Twilio
             async sendSMSDirect(phoneNumber, message) {
-                // This would normally be done via a backend server for security
-                // For demo purposes, we'll simulate the response
                 
-                // In a real implementation, you would make a request to your backend:
-                // const response = await fetch('/api/send-sms', {
-                //     method: 'POST',
-                //     headers: { 'Content-Type': 'application/json' },
-                //     body: JSON.stringify({
-                //         to: phoneNumber,
-                //         message: message,
-                //         twilio: CONFIG.twilio
-                //     })
-                // });
+                const response = await fetch('/api/send-sms', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                        to: phoneNumber,
+                     message: message,
+                        twilio: CONFIG.twilio
+                  })
+                 });
                 
                 // For demo, simulate successful SMS sending
                 return new Promise((resolve) => {
