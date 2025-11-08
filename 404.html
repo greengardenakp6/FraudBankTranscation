@@ -642,14 +642,18 @@
                         <label for="location">TRANSACTION LOCATION</label>
                         <div class="input-group">
                             <select id="location" required>
-                                <option value="">Select Location</option>
-                                <option value="New York" selected>🗽 New York</option>
-                                <option value="London">🇬🇧 London</option>
-                                <option value="Tokyo">🗼 Tokyo</option>
-                                <option value="Paris">🇫🇷 Paris</option>
-                                <option value="Sydney">🇦🇺 Sydney</option>
-                                <option value="Dubai">🇦🇪 Dubai</option>
-                            </select>
+    <option value="">Select Location</option>
+    <option value="New York" selected>🗽 New York</option>
+    <option value="London">🇬🇧 London</option>
+    <option value="Tokyo">🗼 Tokyo</option>
+    <option value="Paris">🇫🇷 Paris</option>
+    <option value="Sydney">🇦🇺 Sydney</option>
+    <option value="Dubai">🇦🇪 Dubai</option>
+    <option value="Mumbai">🇮🇳 Mumbai</option>
+    <option value="Delhi">🇮🇳 Delhi</option>
+    <option value="Bangalore">🇮🇳 Bangalore</option>
+    <option value="Chennai">🇮🇳 Chennai</option>
+</select>
                             <div class="input-icon">🌍</div>
                         </div>
                     </div>
@@ -657,7 +661,7 @@
                     <div class="form-group">
                         <label for="mobileNumber">YOUR MOBILE NUMBER</label>
                         <div class="input-group">
-                            <input type="tel" id="mobileNumber" placeholder="+1234567890" value="+1234567890" required>
+                            <input type="tel" id="mobileNumber" placeholder="+919876543210" value="+919876543210" required>
                             <div class="input-icon">📱</div>
                         </div>
                         <small style="color: #6c757d; font-size: 0.85em;">Enter YOUR real phone number to receive SMS alerts</small>
@@ -808,8 +812,8 @@
         const CONFIG = {
             // Twilio credentials
             twilio: {
-                accountSid: 'ACf60f450f29fabf5d4dd0f680f2052f48',
-                authToken: '27b218e9132e0e79d54b30051aed8a48',
+                accountSid: 'ACf60f450f29fabf5d4dd01680f2052f48',
+                authToken: '614f4f07bfff3587434f76ae4be21d25',
                 phoneNumber: '+14787395985'
             },
             // EmailJS credentials
@@ -819,13 +823,18 @@
                 templateId: 'template_akash'
             },
             
-            accounts: [
-                { accNo: 100, name: "Alice Smith", balance: 150000, type: "Premium" },
-                { accNo: 101, name: "Bob Johnson", balance: 75000, type: "Standard" },
-                { accNo: 102, name: "Carol Davis", balance: 250000, type: "Business" },
-                { accNo: 103, name: "David Wilson", balance: 50000, type: "Standard" },
-                { accNo: 104, name: "Eva Brown", balance: 300000, type: "Premium" }
-            ],
+           accounts: [
+    { accNo: 100, name: "Alice Smith", balance: 150000, type: "Premium" },
+    { accNo: 101, name: "Bob Johnson", balance: 75000, type: "Standard" },
+    { accNo: 102, name: "Carol Davis", balance: 250000, type: "Business" },
+    { accNo: 103, name: "David Wilson", balance: 50000, type: "Standard" },
+    { accNo: 104, name: "Eva Brown", balance: 300000, type: "Premium" },
+    { accNo: 105, name: "Raj Sharma", balance: 180000, type: "Premium", country: "India" },
+    { accNo: 106, name: "Priya Patel", balance: 220000, type: "Business", country: "India" },
+    { accNo: 107, name: "Amit Kumar", balance: 95000, type: "Standard", country: "India" },
+    { accNo: 108, name: "Anjali Singh", balance: 350000, type: "Premium", country: "India" },
+    { accNo: 109, name: "Vikram Mehta", balance: 120000, type: "Business", country: "India" }
+],
             thresholds: {
                 highValue: 50000,
                 veryHighValue: 100000,
