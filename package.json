@@ -1,26 +1,25 @@
 {
   "name": "fraud-detection-system",
-  "version": "2.0.0",
-  "description": "Real-time Fraud Detection with Twilio SMS & EmailJS",
+  "version": "1.0.0",
+  "description": "Fraud Detection System with C Backend and Web Interface",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "test": "echo \"Testing real services\" && exit 0"
+    "test": "echo \"No tests specified\" && exit 0"
   },
   "dependencies": {
     "express": "^4.18.2",
     "twilio": "^4.19.0",
-    "axios": "^1.6.0",
-    "cors": "^2.8.5"
+    "axios": "^1.6.0"
   },
   "keywords": [
     "fraud-detection",
+    "c-backend",
     "twilio",
-    "emailjs",
-    "real-sms",
+    "email",
     "security"
   ],
-  "author": "Akash",
+  "author": "Fraud Detection System",
   "license": "MIT"
 }
