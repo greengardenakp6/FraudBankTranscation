@@ -7,7 +7,7 @@ const axios = require('axios');
 const app = express();
 const port = 3000;
 
-// Twilio Configuration - UPDATED WITH CORRECT CREDENTIALS
+// Twilio Configuration - CORRECT CREDENTIALS
 const TWILIO_CONFIG = {
     AccountSID: 'ACf60f450f29fabf5d4dd01680f2052f48',
     AuthToken: '614f4f07bfff3587434f76ae4be21d25',  
@@ -22,7 +22,8 @@ const twilioPhoneNumber = TWILIO_CONFIG.MyTwilioPhone;
 const EMAILJS_CONFIG = {
     serviceId: 'service_akash',
     templateId: 'template_akash',  
-    publicKey: 'CaMVUkQYox6o96Q29'
+    publicKey: 'CaMVUkQYox6o96Q29',
+    privateKey: 'YOUR_PRIVATE_KEY' // Add if needed
 };
 
 // Middleware
@@ -32,21 +33,28 @@ app.use(express.static('.'));
 // Add CORS headers
 app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     next();
 });
 
-// Enhanced Alert Message Generator (Matches your screenshot format EXACTLY)
+// Handle preflight requests
+app.options('*', (req, res) => {
+    res.sendStatus(200);
+});
+
+// Enhanced Alert Message Generator
 function generateAlertMessage(transaction, type = 'sms') {
     const riskLevel = transaction.riskScore >= 60 ? 'HIGH RISK' : 
                      transaction.riskScore >= 30 ? 'MEDIUM RISK' : 'LOW RISK';
     
-    const timestamp = new Date(transaction.timestamp * 1000).toLocaleString();
+    const timestamp = new Date().toLocaleString();
     
-    // Same format for both SMS and Email
-    const message = `🚨 FRAUD ALERT:\n\nTransaction $${transaction.amount.toLocaleString()} at ${transaction.location}.\nRisk: ${transaction.riskScore}% (${riskLevel}).\n\nAccount: ${transaction.accNo}.\nTimestamp: ${timestamp}.\n\nPlease verify immediately.\n\n---\nSent from Fraud Detection System`;
-    
-    return message;
+    if (type === 'sms') {
+        return `🚨 FRAUD ALERT: Transaction $${transaction.amount.toLocaleString()} at ${transaction.location}. Risk: ${transaction.riskScore}% (${riskLevel}). Account: ${transaction.accNo}. Timestamp: ${timestamp}. Please verify immediately.`;
+    } else {
+        return `🚨 FRAUD ALERT:\n\nTransaction Details:\n• Amount: $${transaction.amount.toLocaleString()}\n• Location: ${transaction.location}\n• Risk Score: ${transaction.riskScore}% (${riskLevel})\n• Account: ${transaction.accNo}\n• Timestamp: ${timestamp}\n\nPlease verify this transaction immediately.\n\n---\nFraud Detection System`;
+    }
 }
 
 // API endpoint to call C backend
@@ -67,6 +75,7 @@ app.post('/api/process-transaction', async (req, res) => {
             
             // Send BOTH SMS and Email alerts for any risk ≥ 30%
             if (jsResult.transaction.riskScore >= 30) {
+                console.log('🚨 Risk detected - sending BOTH SMS and Email alerts...');
                 await sendBothAlerts(jsResult.transaction);
             }
             
@@ -143,7 +152,7 @@ async function sendSMSAlert(transaction) {
     }
 }
 
-// Enhanced Email Alert Function - SAME FORMAT AS SMS
+// Enhanced Email Alert Function
 async function sendEmailAlert(transaction) {
     try {
         const riskLevel = transaction.riskScore >= 60 ? 'HIGH RISK' : 'MEDIUM RISK';
@@ -153,13 +162,13 @@ async function sendEmailAlert(transaction) {
             to_name: 'Security Team',
             from_name: 'Fraud Detection System',
             subject: `🚨 Fraud Alert - ${riskLevel} - Account ${transaction.accNo}`,
-            message: generateAlertMessage(transaction, 'email'), // Same message as SMS
+            message: generateAlertMessage(transaction, 'email'),
             transaction_amount: `$${transaction.amount.toLocaleString()}`,
             transaction_location: transaction.location,
             risk_score: `${transaction.riskScore}%`,
             risk_level: riskLevel,
             account_number: transaction.accNo.toString(),
-            timestamp: new Date(transaction.timestamp * 1000).toLocaleString()
+            timestamp: new Date().toLocaleString()
         };
 
         console.log('📧 Attempting to send EmailJS email to:', transaction.email);
@@ -170,11 +179,13 @@ async function sendEmailAlert(transaction) {
                 service_id: EMAILJS_CONFIG.serviceId,
                 template_id: EMAILJS_CONFIG.templateId,
                 user_id: EMAILJS_CONFIG.publicKey,
-                template_params: emailParams
+                template_params: emailParams,
+                accessToken: EMAILJS_CONFIG.privateKey
             },
             {
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Origin': 'http://localhost:3000'
                 },
                 timeout: 10000
             }
@@ -330,7 +341,7 @@ app.get('/api/test-email', async (req, res) => {
 // Alert testing endpoint - Sends BOTH alerts
 app.post('/api/test-alert', async (req, res) => {
     try {
-        const { phoneNumber, email, amount = 100000, riskScore = 30 } = req.body;
+        const { phoneNumber, email, amount = 100000, riskScore = 75 } = req.body;
         
         const testTransaction = {
             phone: phoneNumber,
@@ -431,7 +442,20 @@ function simulateBackend(accNo, amount, location, mobileNumber, emailAddress) {
     };
 }
 
-app.listen(port, () => {
+// Health check endpoint
+app.get('/health', (req, res) => {
+    res.json({ 
+        status: 'healthy', 
+        timestamp: new Date().toISOString(),
+        services: {
+            twilio: 'active',
+            emailjs: 'active',
+            backend: 'active'
+        }
+    });
+});
+
+app.listen(port, '0.0.0.0', () => {
     console.log(`🚀 Fraud Detection System Server running at http://localhost:${port}`);
     console.log('📊 Frontend: http://localhost:3000');
     console.log('🔧 Automatic Alert System:');
@@ -439,4 +463,6 @@ app.listen(port, () => {
     console.log('   - Twilio: ACTIVE with corrected credentials');
     console.log('   - EmailJS: ACTIVE');
     console.log('💡 Test with amount > $50,000 to trigger BOTH alerts automatically');
+    console.log('📱 Test SMS: Use real phone number with country code (+1XXXXXXXXXX)');
+    console.log('📧 Test Email: Use real email address');
 });
