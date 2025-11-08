@@ -916,8 +916,8 @@ class FraudDetectionSystem {
     constructor() {
         this.transactions = [];
         this.accounts = CONFIG.accounts;
-        this.backendActive = false;
-        this.smsActive = false;
+        this.backendActive = true;
+        this.smsActive = true;
         this.emailActive = true;
         this.currentTransaction = null;
         this.init();
