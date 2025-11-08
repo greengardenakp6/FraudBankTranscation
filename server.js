@@ -11,7 +11,7 @@ const port = 3000;
 // Twilio Configuration - UPDATED WITH CORRECT CREDENTIALS
 const twilioClient = twilio(
     'ACf60f450f29fabf5d4dd01680f2052f48',  // Your Account SID
-    '614f4f07bfff358...'                   // ✅ NEW Auth Token from your screenshot
+    '614f4f07bfff3587434f76ae4be21d25'                   // ✅ NEW Auth Token from your screenshot
 );
 const twilioPhoneNumber = '+14787395985';  // Your Twilio phone number
 
