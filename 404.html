@@ -766,6 +766,16 @@
                     <strong>📱 SMS Test:</strong> Use amounts over $50,000 to trigger automatic SMS alerts
                 </div>
             </div>
+            
+            <!-- Twilio Integration Information -->
+            <div class="twilio-info">
+                <h4>🔧 Twilio Integration Status</h4>
+                <p><strong>Current Status:</strong> SMS simulation active (working in demo mode)</p>
+                <p><strong>To enable REAL SMS:</strong> You need a backend server to securely send SMS using your Twilio credentials.</p>
+                <p><strong>Backend Requirements:</strong> Node.js/Express, Python/Flask, or any server that can make authenticated requests to Twilio API.</p>
+                <p><a href="https://www.twilio.com/docs/sms/quickstart/node" target="_blank">📚 View Twilio SMS Quickstart Guide</a></p>
+            </div>
+        </div>
 
         <!-- Dashboard Section -->
         <div class="results-container">
@@ -871,7 +881,6 @@
             // Twilio credentials from your screenshot
             twilio: {
                 accountSid: 'ACf601450f29fabf5d4dd01680f2052f48',
-                authToken: '614f4f07bfff3587434f76ae4be2td25',
                 phoneNumber: '+14787395985'
             },
             // EmailJS credentials from your screenshot
@@ -938,10 +947,6 @@
 
             async testTwilioService() {
                 try {
-                    // Initialize Twilio client
-                    const client = Twilio(CONFIG.twilio.accountSid, CONFIG.twilio.authToken);
-                    console.log('✅ Twilio client initialized');
-                    
                     // For demo purposes, we'll simulate successful SMS service
                     // In production, you would need a backend server
                     this.setSMSStatus(true);
