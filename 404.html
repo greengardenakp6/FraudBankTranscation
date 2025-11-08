@@ -915,8 +915,8 @@
             constructor() {
                 this.transactions = [];
                 this.accounts = CONFIG.accounts;
-                this.backendActive = true;
-                this.smsActive = true; // Force SMS to active for demo
+                this.backendActive = false;
+                this.smsActive = false; // Force SMS to active for demo
                 this.emailActive = true;
                 this.currentTransaction = null;
                 this.init();
@@ -932,8 +932,28 @@
                 this.updateStats();
                 await this.initializeEmailJS();
                 await this.testTwilioService();
-            }
+                await this.testBackendConnection();
 
+            }
+              async testBackendConnection() {
+        try {
+            const response = await fetch(`${CONFIG.backendUrl}/health`);
+            const data = await response.json();
+            
+            if (data.status === 'OK') {
+                this.setBackendStatus(true);
+                this.setSMSStatus(true);
+                console.log('✅ Backend connection successful');
+            } else {
+                throw new Error('Backend not healthy');
+            }
+        } catch (error) {
+            console.error('❌ Backend connection failed:', error);
+            this.setBackendStatus(false);
+            this.setSMSStatus(false);
+            this.showAlert('Backend server is offline. Using simulation mode.', 'warning');
+        }
+    }
             async initializeEmailJS() {
                 try {
                     emailjs.init(CONFIG.emailjs.publicKey);
@@ -945,19 +965,15 @@
                 }
             }
 
-            async testTwilioService() {
-                try {
-                    // For demo purposes, we'll simulate successful SMS service
-                    // In production, you would need a backend server
-                    this.setSMSStatus(true);
-                    console.log('✅ Twilio SMS: ACTIVE (Simulated for demo)');
-                    
-                } catch (error) {
-                    console.log('⚠️ Twilio browser limitations - using simulation:', error);
-                    // Even if Twilio fails in browser, we'll simulate it for demo
-                    this.setSMSStatus(true);
-                }
-            }
+           setBackendStatus(active) {
+        this.backendActive = active;
+        const statusEl = document.getElementById('backendStatus');
+        if (statusEl) {
+            statusEl.className = active ? 'status-badge status-active' : 'status-badge status-inactive';
+            statusEl.innerHTML = active ? '✅ Backend Online' : '❌ Backend Offline';
+        }
+    }
+
 
             setSMSStatus(active) {
                 this.smsActive = active;
@@ -1207,6 +1223,63 @@
                     }
                 }
             }
+            // REAL SMS via Backend API
+    async sendRealSMS(phoneNumber = null, transactionData = null) {
+        if (!this.smsActive) {
+            this.showAlert('❌ SMS service is currently offline', 'error');
+            return;
+        }
+
+        const phone = phoneNumber || document.getElementById('phoneNumber').value;
+        const transaction = transactionData || this.currentTransaction;
+        const message = document.getElementById('smsMessage')?.value || this.generateSMSMessage(transaction);
+        
+        if (!phone || !message) {
+            this.showAlert('Phone number and message are required', 'error');
+            return;
+        }
+
+        try {
+            const sendBtn = document.getElementById('sendSMS');
+            if (sendBtn) {
+                const originalText = sendBtn.innerHTML;
+                sendBtn.disabled = true;
+                sendBtn.innerHTML = '<div class="loading-spinner"></div> Sending...';
+            }
+
+            const response = await fetch(`${CONFIG.backendUrl}/send-sms`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    to: phone,
+                    message: message,
+                    transactionId: transaction?.id
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                this.showAlert('✅ REAL SMS sent successfully!', 'success');
+                this.closeModal();
+                console.log('📱 SMS sent:', result);
+            } else {
+                throw new Error(result.error || 'Failed to send SMS');
+            }
+
+        } catch (error) {
+            console.error('SMS error:', error);
+            this.showAlert('❌ Failed to send SMS: ' + error.message, 'error');
+        } finally {
+            const sendBtn = document.getElementById('sendSMS');
+            if (sendBtn) {
+                sendBtn.disabled = false;
+                sendBtn.innerHTML = 'Send Real SMS via Twilio';
+            }
+        }
+    }
 
             // PDF Generation with Enhanced Details
             generatePDFReport(transactionData) {
