@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fraud Detection System - REAL SMS ALERTS</title>
+    <title>Fraud Detection System - REAL SMS & EMAIL ALERTS</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/twilio@4.26.0/dist/twilio.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
@@ -23,7 +23,7 @@
         }
 
         .container {
-            max-width: 1000px;
+            max-width: 1200px;
             margin: 0 auto;
             background: white;
             border-radius: 15px;
@@ -170,6 +170,16 @@
         .btn-secondary:hover {
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(108, 117, 125, 0.3);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #27ae60 0%, #219653 100%);
+            color: white;
+        }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(39, 174, 96, 0.3);
         }
 
         .btn:disabled {
@@ -566,6 +576,74 @@
             border: 1px solid #f5c6cb;
         }
 
+        .test-alerts {
+            background: #fff3cd;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            border-left: 4px solid #ffc107;
+        }
+
+        .test-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .test-btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .test-btn.sms {
+            background: #27ae60;
+            color: white;
+        }
+
+        .test-btn.email {
+            background: #3498db;
+            color: white;
+        }
+
+        .test-btn.both {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .test-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+        }
+
+        .real-time-alerts {
+            background: #f8d7da;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            border-left: 4px solid #dc3545;
+        }
+
+        .alert-log {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+
+        .alert-item {
+            padding: 8px 12px;
+            background: white;
+            border-radius: 6px;
+            margin-bottom: 5px;
+            border-left: 3px solid #dc3545;
+            font-size: 0.9em;
+        }
+
         @media (max-width: 768px) {
             .form-grid {
                 grid-template-columns: 1fr;
@@ -592,6 +670,10 @@
             .service-status {
                 flex-direction: column;
             }
+            
+            .test-buttons {
+                flex-direction: column;
+            }
         }
     </style>
 </head>
@@ -616,19 +698,19 @@
                     <div class="form-group">
                         <label for="accNo">ACCOUNT NUMBER</label>
                         <div class="input-group">
-                          <select id="accNo" required>
-    <option value="">Select Account</option>
-    <option value="100">100 - Alice Smith (Premium) - USA</option>
-    <option value="101">101 - Bob Johnson (Standard) - USA</option>
-    <option value="102">102 - Carol Davis (Business) - USA</option>
-    <option value="103">103 - David Wilson (Standard) - USA</option>
-    <option value="104" selected>104 - Eva Brown (Premium) - USA</option>
-    <option value="105">105 - Raj Sharma (Premium) - India</option>
-    <option value="106">106 - Priya Patel (Business) - India</option>
-    <option value="107">107 - Amit Kumar (Standard) - India</option>
-    <option value="108">108 - Anjali Singh (Premium) - India</option>
-    <option value="109">109 - Vikram Mehta (Business) - India</option>
-</select>
+                            <select id="accNo" required>
+                                <option value="">Select Account</option>
+                                <option value="100">100 - Alice Smith (Premium) - USA</option>
+                                <option value="101">101 - Bob Johnson (Standard) - USA</option>
+                                <option value="102">102 - Carol Davis (Business) - USA</option>
+                                <option value="103">103 - David Wilson (Standard) - USA</option>
+                                <option value="104" selected>104 - Eva Brown (Premium) - USA</option>
+                                <option value="105">105 - Frank Miller (Premium) - USA</option>
+                                <option value="106">106 - Grace Lee (Standard) - USA</option>
+                                <option value="107">107 - Henry Clark (Business) - USA</option>
+                                <option value="108">108 - Ivy Garcia (Standard) - USA</option>
+                                <option value="109">109 - Jack Martinez (Business) - USA</option>
+                            </select>
                             <div class="input-icon">👤</div>
                         </div>
                     </div>
@@ -647,18 +729,14 @@
                         <label for="location">TRANSACTION LOCATION</label>
                         <div class="input-group">
                             <select id="location" required>
-    <option value="">Select Location</option>
-    <option value="New York" selected>🗽 New York</option>
-    <option value="London">🇬🇧 London</option>
-    <option value="Tokyo">🗼 Tokyo</option>
-    <option value="Paris">🇫🇷 Paris</option>
-    <option value="Sydney">🇦🇺 Sydney</option>
-    <option value="Dubai">🇦🇪 Dubai</option>
-    <option value="Mumbai">🇮🇳 Mumbai</option>
-    <option value="Delhi">🇮🇳 Delhi</option>
-    <option value="Bangalore">🇮🇳 Bangalore</option>
-    <option value="Chennai">🇮🇳 Chennai</option>
-</select>
+                                <option value="">Select Location</option>
+                                <option value="New York">🗽 New York</option>
+                                <option value="London">🇬🇧 London</option>
+                                <option value="Tokyo" selected>🗼 Tokyo</option>
+                                <option value="Paris">🇫🇷 Paris</option>
+                                <option value="Sydney">🇦🇺 Sydney</option>
+                                <option value="Dubai">🇦🇪 Dubai</option>
+                            </select>
                             <div class="input-icon">🌍</div>
                         </div>
                     </div>
@@ -669,7 +747,7 @@
                             <input type="tel" id="mobileNumber" placeholder="+919876543210" value="+919876543210" required>
                             <div class="input-icon">📱</div>
                         </div>
-                        <small style="color: #6c757d; font-size: 0.85em;">Enter YOUR real phone number to receive SMS alerts</small>
+                        <small style="color: #6c757d; font-size: 0.85em;">Enter YOUR real phone number with country code to receive SMS alerts</small>
                     </div>
                 </div>
 
@@ -692,10 +770,23 @@
                 </div>
             </form>
             
+            <!-- Test Alerts Section -->
+            <div class="test-alerts">
+                <h4>🧪 Test Real Alerts</h4>
+                <p style="margin-bottom: 10px; font-size: 0.9em;">Test SMS and Email alerts with your real phone and email</p>
+                <div class="test-buttons">
+                    <button class="test-btn sms" id="testSMS">📱 Test SMS Alert</button>
+                    <button class="test-btn email" id="testEmail">📧 Test Email Alert</button>
+                    <button class="test-btn both" id="testBoth">🚨 Test Both Alerts</button>
+                </div>
+            </div>
+            
             <div class="backend-status">
                 <h4>🔧 Real Services Status</h4>
                 <div class="service-status">
-                    
+                    <div id="backendStatus" class="status-badge status-inactive">
+                        <span>❌ Backend Offline</span>
+                    </div>
                     <div id="smsStatus" class="status-badge status-inactive">
                         <span>❌ SMS Offline</span>
                     </div>
@@ -704,10 +795,10 @@
                     </div>
                 </div>
                 <p style="margin-top: 10px; font-size: 0.9em; color: #666;">
-                    <strong>REAL ALERTS:</strong> High-risk transactions will automatically send SMS to your phone.
+                    <strong>REAL ALERTS:</strong> High-risk transactions will automatically send SMS to your phone and email to your inbox.
                 </p>
                 <div style="margin-top: 10px; font-size: 0.8em; color: #28a745;">
-                    <strong>📱 SMS Test:</strong> Use amounts over $50,000 to trigger automatic SMS alerts
+                    <strong>🚨 Auto Alert Trigger:</strong> Use amounts over $50,000 to trigger automatic SMS & Email alerts
                 </div>
             </div>
         </div>
@@ -738,6 +829,14 @@
                 <div class="stat-card">
                     <div class="stat-value" id="fraudRate">0%</div>
                     <div class="stat-label">Fraud Detection Rate</div>
+                </div>
+            </div>
+            
+            <!-- Real-time Alerts -->
+            <div class="real-time-alerts">
+                <h4>🚨 Real-time Alert Log</h4>
+                <div id="alertLog" class="alert-log">
+                    <div class="alert-item">No alerts yet. Process transactions to see real-time alerts.</div>
                 </div>
             </div>
             
@@ -777,7 +876,7 @@
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" id="cancelSMS">Cancel</button>
-                <button class="btn btn-primary" id="sendSMS">Send Real SMS via Twilio</button>
+                <button class="btn btn-success" id="sendSMS">Send Real SMS via Twilio</button>
             </div>
         </div>
     </div>
@@ -791,8 +890,8 @@
             </div>
             <div class="modal-body">
                 <div class="form-control">
-                    <label for="emailAddress">Email Address</label>
-                    <input type="email" id="emailAddress" placeholder="your@email.com" value="your@email.com">
+                    <label for="emailTo">Email Address</label>
+                    <input type="email" id="emailTo" placeholder="your@email.com" value="your@email.com">
                 </div>
                 <div class="form-control">
                     <label for="emailSubject">Subject</label>
@@ -805,43 +904,41 @@
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" id="cancelEmail">Cancel</button>
-                <button class="btn btn-primary" id="sendEmail">Send Real Email</button>
+                <button class="btn btn-success" id="sendEmail">Send Real Email</button>
             </div>
         </div>
     </div>
 
     <script>
-        // Configuration with YOUR REAL credentials
+        // Configuration with REAL credentials
         const CONFIG = {
-            // Twilio credentials
-            twilio: {
-                accountSid: 'ACf60f450f29fabf5d4dd01680f2052f48',
-                authToken: '614f4f07bfff3587434f76ae4be21d25',
-                phoneNumber: '+14787395985'
-            },
-            // EmailJS credentials
-            emailjs: {
-                publicKey: 'CaMVUkQYox6o96Q29',
-                serviceId: 'service_akash',
-                templateId: 'template_akash'
+            // Server endpoints
+            endpoints: {
+                processTransaction: '/api/process-transaction',
+                sendSMS: '/api/send-sms',
+                sendEmail: '/api/send-email',
+                testSMS: '/api/test-sms',
+                testEmail: '/api/test-email',
+                testAlert: '/api/test-alert',
+                servicesConfig: '/api/services/config'
             },
             
-           accounts: [
-    { accNo: 100, name: "Alice Smith", balance: 150000, type: "Premium" },
-    { accNo: 101, name: "Bob Johnson", balance: 75000, type: "Standard" },
-    { accNo: 102, name: "Carol Davis", balance: 250000, type: "Business" },
-    { accNo: 103, name: "David Wilson", balance: 50000, type: "Standard" },
-    { accNo: 104, name: "Eva Brown", balance: 300000, type: "Premium" },
-    { accNo: 105, name: "Raj Sharma", balance: 180000, type: "Premium", country: "India" },
-    { accNo: 106, name: "Priya Patel", balance: 220000, type: "Business", country: "India" },
-    { accNo: 107, name: "Amit Kumar", balance: 95000, type: "Standard", country: "India" },
-    { accNo: 108, name: "Anjali Singh", balance: 350000, type: "Premium", country: "India" },
-    { accNo: 109, name: "Vikram Mehta", balance: 120000, type: "Business", country: "India" }
-],
+            accounts: [
+                { accNo: 100, name: "Alice Smith", balance: 150000, type: "Premium" },
+                { accNo: 101, name: "Bob Johnson", balance: 75000, type: "Standard" },
+                { accNo: 102, name: "Carol Davis", balance: 250000, type: "Business" },
+                { accNo: 103, name: "David Wilson", balance: 50000, type: "Standard" },
+                { accNo: 104, name: "Eva Brown", balance: 300000, type: "Premium" },
+                { accNo: 105, name: "Frank Miller", balance: 120000, type: "Premium" },
+                { accNo: 106, name: "Grace Lee", balance: 80000, type: "Standard" },
+                { accNo: 107, name: "Henry Clark", balance: 200000, type: "Business" },
+                { accNo: 108, name: "Ivy Garcia", balance: 60000, type: "Standard" },
+                { accNo: 109, name: "Jack Martinez", balance: 180000, type: "Business" }
+            ],
             thresholds: {
                 highValue: 50000,
                 veryHighValue: 100000,
-                autoAlertThreshold: 60,
+                autoAlertThreshold: 30, // Both SMS & Email for risk ≥ 30%
                 rapidTransactionMinutes: 5,
                 rapidTransactionCount: 3
             }
@@ -855,6 +952,7 @@
                 this.smsActive = false;
                 this.emailActive = false;
                 this.currentTransaction = null;
+                this.alertLog = [];
                 this.init();
             }
 
@@ -863,38 +961,45 @@
                 this.setupEventListeners();
                 this.loadTransactionHistory();
                 this.updateStats();
-                await this.initializeEmailJS();
                 await this.testAllServices();
             }
 
-            async initializeEmailJS() {
+            async testAllServices() {
+                await this.testBackendService();
+                await this.testSMSService();
+                await this.testEmailService();
+            }
+
+            async testBackendService() {
                 try {
-                    emailjs.init(CONFIG.emailjs.publicKey);
-                    console.log('✅ EmailJS initialized');
-                    this.setEmailStatus(true);
+                    const response = await fetch('/api/test-backend');
+                    const data = await response.json();
+                    this.setBackendStatus(data.success);
                 } catch (error) {
-                    console.error('❌ EmailJS initialization failed:', error);
-                    this.setEmailStatus(false);
+                    console.error('Backend test failed:', error);
+                    this.setBackendStatus(false);
                 }
             }
 
-            async testAllServices() {
-                await this.testTwilioService();
+            async testSMSService() {
+                try {
+                    const response = await fetch('/api/test-sms');
+                    const data = await response.json();
+                    this.setSMSStatus(data.success);
+                } catch (error) {
+                    console.error('SMS test failed:', error);
+                    this.setSMSStatus(false);
+                }
             }
 
-            async testTwilioService() {
-                // Test Twilio by attempting to send a test SMS
+            async testEmailService() {
                 try {
-                    const testResponse = await this.sendSMSDirect('+1234567890', '🔍 Fraud Detection System Test: Services are active and ready!');
-                    if (testResponse.success) {
-                        this.setSMSStatus(true);
-                        console.log('✅ Twilio SMS: ACTIVE - Ready to send real SMS');
-                    } else {
-                        this.setSMSStatus(false);
-                    }
+                    const response = await fetch('/api/test-email');
+                    const data = await response.json();
+                    this.setEmailStatus(data.success);
                 } catch (error) {
-                    console.log('❌ Twilio service test failed');
-                    this.setSMSStatus(false);
+                    console.error('Email test failed:', error);
+                    this.setEmailStatus(false);
                 }
             }
 
@@ -912,7 +1017,7 @@
                 const statusEl = document.getElementById('smsStatus');
                 if (statusEl) {
                     statusEl.className = active ? 'status-badge status-active' : 'status-badge status-inactive';
-                    statusEl.innerHTML = active ? '✅ Twilio SMS' : '❌ SMS Offline';
+                    statusEl.innerHTML = active ? '✅ Twilio SMS Active' : '❌ SMS Offline';
                 }
             }
 
@@ -921,7 +1026,7 @@
                 const statusEl = document.getElementById('emailStatus');
                 if (statusEl) {
                     statusEl.className = active ? 'status-badge status-active' : 'status-badge status-inactive';
-                    statusEl.innerHTML = active ? '✅ Email Service' : '❌ Email Offline';
+                    statusEl.innerHTML = active ? '✅ Email Service Active' : '❌ Email Offline';
                 }
             }
 
@@ -932,6 +1037,11 @@
                 document.getElementById('refreshStats').addEventListener('click', () => this.refreshStats());
                 document.getElementById('clearHistory').addEventListener('click', () => this.clearHistory());
                 document.getElementById('exportData').addEventListener('click', () => this.exportData());
+                
+                // Test alert buttons
+                document.getElementById('testSMS').addEventListener('click', () => this.testSMSAlert());
+                document.getElementById('testEmail').addEventListener('click', () => this.testEmailAlert());
+                document.getElementById('testBoth').addEventListener('click', () => this.testBothAlerts());
                 
                 // Modal event listeners
                 document.querySelectorAll('.close-modal').forEach(btn => {
@@ -974,136 +1084,46 @@
                 submitBtn.innerHTML = '<div class="loading-spinner"></div> Processing...';
 
                 try {
-                    const result = this.processTransaction({
-                        accNo: parseInt(accNo),
-                        amount: amount,
-                        location: location,
-                        mobileNumber: mobileNumber,
-                        emailAddress: emailAddress
+                    const response = await fetch(CONFIG.endpoints.processTransaction, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            accNo: parseInt(accNo),
+                            amount: amount,
+                            location: location,
+                            mobileNumber: mobileNumber,
+                            emailAddress: emailAddress
+                        })
                     });
+
+                    if (!response.ok) {
+                        throw new Error(`Server error: ${response.status}`);
+                    }
+
+                    const result = await response.json();
                     
-                    this.displayResults(result);
-                    this.loadTransactionHistory();
-                    this.updateStats();
+                    if (result.success) {
+                        this.displayResults(result);
+                        this.addTransactionToHistory(result.transaction);
+                        this.updateStats();
+                        
+                        // Log alert if suspicious
+                        if (result.transaction.riskScore >= CONFIG.thresholds.autoAlertThreshold) {
+                            this.logAlert(`🚨 Auto-alert sent for transaction $${amount} (Risk: ${result.transaction.riskScore}%)`);
+                        }
+                    } else {
+                        throw new Error(result.error || 'Transaction failed');
+                    }
                     
                 } catch (error) {
+                    console.error('Transaction error:', error);
                     this.showAlert('Error: ' + error.message, 'error');
                 } finally {
                     submitBtn.disabled = false;
                     submitBtn.innerHTML = originalText;
                 }
-            }
-
-            processTransaction(transactionData) {
-                const account = this.accounts.find(acc => acc.accNo === transactionData.accNo);
-                if (!account) {
-                    throw new Error('Account not found');
-                }
-
-                if (account.balance < transactionData.amount) {
-                    throw new Error('Insufficient balance');
-                }
-
-                // Fraud detection
-                const fraudResult = this.detectFraud(transactionData);
-                
-                // Update account balance
-                account.balance -= transactionData.amount;
-
-                const transaction = {
-                    id: Date.now(),
-                    ...transactionData,
-                    timestamp: new Date().toLocaleString(),
-                    alerts: fraudResult.alerts,
-                    status: fraudResult.isSuspicious ? 'suspicious' : 'clean',
-                    riskScore: fraudResult.riskScore,
-                    remainingBalance: account.balance,
-                    accountName: account.name,
-                    accountType: account.type
-                };
-
-                this.transactions.unshift(transaction);
-                this.saveToLocalStorage();
-                this.currentTransaction = transaction;
-
-                // Auto-send REAL SMS for high risk transactions
-                if (fraudResult.riskScore >= CONFIG.thresholds.autoAlertThreshold && this.smsActive) {
-                    setTimeout(() => {
-                        this.sendRealSMS(transaction.mobileNumber, transaction);
-                    }, 1000);
-                }
-
-                // Auto-send Email for high risk transactions
-                if (fraudResult.riskScore >= CONFIG.thresholds.autoAlertThreshold && this.emailActive) {
-                    setTimeout(() => {
-                        this.sendRealEmail(transaction.emailAddress, transaction);
-                    }, 1500);
-                }
-
-                return {
-                    success: true,
-                    transaction: transaction,
-                    remainingBalance: account.balance
-                };
-            }
-
-            detectFraud(transaction) {
-                const alerts = [];
-                let riskScore = 0;
-
-                // High value checks
-                if (transaction.amount > CONFIG.thresholds.veryHighValue) {
-                    alerts.push("Very high-value transaction");
-                    riskScore += 50;
-                } else if (transaction.amount > CONFIG.thresholds.highValue) {
-                    alerts.push("High-value transaction");
-                    riskScore += 25;
-                }
-
-                // Rapid transactions check
-                const fiveMinutesAgo = Date.now() - (CONFIG.thresholds.rapidTransactionMinutes * 60 * 1000);
-                const recentTransactions = this.transactions.filter(t => 
-                    t.accNo === transaction.accNo && 
-                    new Date(t.timestamp).getTime() > fiveMinutesAgo
-                );
-
-                if (recentTransactions.length >= CONFIG.thresholds.rapidTransactionCount) {
-                    alerts.push("Multiple rapid transactions detected");
-                    riskScore += 30;
-                }
-
-                // Location change check
-                const lastTransaction = this.transactions.find(t => t.accNo === transaction.accNo);
-                if (lastTransaction && lastTransaction.location !== transaction.location) {
-                    const farLocations = (lastTransaction.location === "Tokyo" && transaction.location === "New York") ||
-                                       (lastTransaction.location === "London" && transaction.location === "Sydney");
-                    if (farLocations) {
-                        alerts.push("Impossible travel detected");
-                        riskScore += 40;
-                    } else {
-                        alerts.push("Location change detected");
-                        riskScore += 10;
-                    }
-                }
-
-                // Round amount check
-                if (transaction.amount % 1000 === 0 && transaction.amount > 1000) {
-                    alerts.push("Round amount transaction");
-                    riskScore += 5;
-                }
-
-                // Determine if suspicious
-                const isSuspicious = riskScore > 20;
-
-                if (alerts.length === 0) {
-                    alerts.push("No fraud detected");
-                }
-
-                return {
-                    alerts: alerts,
-                    riskScore: Math.min(riskScore, 100),
-                    isSuspicious: isSuspicious
-                };
             }
 
             displayResults(result) {
@@ -1115,8 +1135,10 @@
                     <div class="alert alert-success">
                         <h3>✅ Transaction Successful</h3>
                         <p><strong>Transaction ID:</strong> ${result.transaction.id}</p>
-                        <p><strong>Account:</strong> ${result.transaction.accNo} - ${result.transaction.accountName}</p>
-                        <p><strong>Remaining Balance:</strong> $${result.remainingBalance.toLocaleString()}</p>
+                        <p><strong>Account:</strong> ${result.transaction.accNo}</p>
+                        <p><strong>Amount:</strong> $${result.transaction.amount.toLocaleString()}</p>
+                        <p><strong>Location:</strong> ${result.transaction.location}</p>
+                        <p><strong>Remaining Balance:</strong> $${result.transaction.remainingBalance.toLocaleString()}</p>
                         <p><strong>Risk Score:</strong> ${riskScore}% (${riskLevel} risk)</p>
                         <p><strong>SMS Service:</strong> ${this.smsActive ? '✅ Active' : '❌ Offline'}</p>
                         <p><strong>Email Service:</strong> ${this.emailActive ? '✅ Active' : '❌ Offline'}</p>
@@ -1147,94 +1169,114 @@
                 resultsDiv.scrollIntoView({ behavior: 'smooth' });
 
                 // Auto-alert for high risk
-                if (riskScore >= 60) {
-                    if (this.smsActive) {
-                        this.showAlert('🚨 High-risk transaction detected! SMS alert will be sent to your phone.', 'warning');
+                if (riskScore >= CONFIG.thresholds.autoAlertThreshold) {
+                    if (this.smsActive || this.emailActive) {
+                        this.showAlert('🚨 High-risk transaction detected! Real alerts will be sent.', 'warning');
                     } else {
-                        this.showAlert('🚨 High-risk transaction detected! SMS service is offline.', 'warning');
+                        this.showAlert('🚨 High-risk transaction detected! Alert services are offline.', 'warning');
                     }
                 }
             }
 
-            // PDF Generation with Enhanced Details
-            generatePDFReport(transactionData) {
+            // Test Alert Functions
+            async testSMSAlert() {
+                const phoneNumber = document.getElementById('mobileNumber').value;
+                if (!phoneNumber) {
+                    this.showAlert('Please enter your phone number first', 'error');
+                    return;
+                }
+
                 try {
-                    const { jsPDF } = window.jspdf;
-                    const doc = new jsPDF();
-                    
-                    // Add header
-                    doc.setFillColor(44, 62, 80);
-                    doc.rect(0, 0, 210, 30, 'F');
-                    doc.setTextColor(255, 255, 255);
-                    doc.setFontSize(20);
-                    doc.text('Fraud Detection System', 105, 15, { align: 'center' });
-                    doc.setFontSize(12);
-                    doc.text('Transaction Security Report', 105, 22, { align: 'center' });
-                    
-                    // Add transaction details
-                    doc.setTextColor(0, 0, 0);
-                    doc.setFontSize(16);
-                    doc.text('Transaction Details', 20, 45);
-                    
-                    doc.setFontSize(12);
-                    let yPos = 55;
-                    doc.text(`Transaction ID: ${transactionData.id}`, 20, yPos);
-                    yPos += 8;
-                    doc.text(`Account: ${transactionData.accNo} - ${transactionData.accountName}`, 20, yPos);
-                    yPos += 8;
-                    doc.text(`Amount: $${transactionData.amount.toLocaleString()}`, 20, yPos);
-                    yPos += 8;
-                    doc.text(`Location: ${transactionData.location}`, 20, yPos);
-                    yPos += 8;
-                    doc.text(`Timestamp: ${transactionData.timestamp}`, 20, yPos);
-                    yPos += 8;
-                    doc.text(`Risk Score: ${transactionData.riskScore}%`, 20, yPos);
-                    yPos += 8;
-                    doc.text(`Status: ${transactionData.status}`, 20, yPos);
-                    yPos += 8;
-                    doc.text(`Remaining Balance: $${transactionData.remainingBalance.toLocaleString()}`, 20, yPos);
-                    
-                    // Add alerts
-                    yPos += 15;
-                    doc.setFontSize(16);
-                    doc.text('Security Alerts', 20, yPos);
-                    
-                    doc.setFontSize(10);
-                    transactionData.alerts.forEach(alert => {
-                        yPos += 8;
-                        if (yPos > 270) {
-                            doc.addPage();
-                            yPos = 20;
-                        }
-                        doc.text(`• ${alert}`, 25, yPos);
+                    const response = await fetch(CONFIG.endpoints.sendSMS, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            phoneNumber: phoneNumber,
+                            message: '🔍 TEST: Fraud Detection System SMS is working! You will receive real SMS alerts for suspicious transactions.'
+                        })
                     });
+
+                    const result = await response.json();
                     
-                    // Add contact information
-                    yPos += 15;
-                    if (yPos > 250) {
-                        doc.addPage();
-                        yPos = 20;
+                    if (result.success) {
+                        this.showAlert('✅ Test SMS sent successfully! Check your phone.', 'success');
+                        this.logAlert('📱 Test SMS alert sent successfully');
+                    } else {
+                        throw new Error(result.error);
                     }
-                    doc.setFontSize(16);
-                    doc.text('Contact Information', 20, yPos);
-                    yPos += 10;
-                    doc.setFontSize(12);
-                    doc.text(`Mobile: ${transactionData.mobileNumber}`, 20, yPos);
-                    yPos += 8;
-                    doc.text(`Email: ${transactionData.emailAddress}`, 20, yPos);
-                    
-                    // Add footer
-                    doc.setFontSize(10);
-                    doc.setTextColor(128, 128, 128);
-                    doc.text(`Generated on ${new Date().toLocaleString()}`, 105, 285, { align: 'center' });
-                    
-                    // Save the PDF
-                    doc.save(`fraud-report-${transactionData.id}.pdf`);
-                    
-                    this.showAlert('📄 PDF report generated successfully', 'success');
                 } catch (error) {
-                    console.error('PDF generation error:', error);
-                    this.showAlert('Error generating PDF report', 'error');
+                    this.showAlert('❌ Test SMS failed: ' + error.message, 'error');
+                }
+            }
+
+            async testEmailAlert() {
+                const emailAddress = document.getElementById('emailAddress').value;
+                if (!emailAddress) {
+                    this.showAlert('Please enter your email address first', 'error');
+                    return;
+                }
+
+                try {
+                    const response = await fetch(CONFIG.endpoints.sendEmail, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            email: emailAddress,
+                            subject: 'TEST: Fraud Detection System Email',
+                            message: 'This is a test email from the Fraud Detection System. You will receive real email alerts for suspicious transactions.'
+                        })
+                    });
+
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        this.showAlert('✅ Test Email sent successfully! Check your inbox.', 'success');
+                        this.logAlert('📧 Test Email alert sent successfully');
+                    } else {
+                        throw new Error(result.error);
+                    }
+                } catch (error) {
+                    this.showAlert('❌ Test Email failed: ' + error.message, 'error');
+                }
+            }
+
+            async testBothAlerts() {
+                const phoneNumber = document.getElementById('mobileNumber').value;
+                const emailAddress = document.getElementById('emailAddress').value;
+                
+                if (!phoneNumber || !emailAddress) {
+                    this.showAlert('Please enter both phone number and email address', 'error');
+                    return;
+                }
+
+                try {
+                    const response = await fetch(CONFIG.endpoints.testAlert, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            phoneNumber: phoneNumber,
+                            email: emailAddress,
+                            amount: 100000,
+                            riskScore: 75
+                        })
+                    });
+
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        this.showAlert('✅ Both SMS & Email alerts sent successfully!', 'success');
+                        this.logAlert('🚨 Test: Both SMS & Email alerts sent');
+                    } else {
+                        throw new Error(result.error);
+                    }
+                } catch (error) {
+                    this.showAlert('❌ Test failed: ' + error.message, 'error');
                 }
             }
 
@@ -1243,7 +1285,7 @@
                 this.currentTransaction = transactionData;
                 const message = this.generateSMSMessage(transactionData);
                 
-                document.getElementById('phoneNumber').value = transactionData.mobileNumber;
+                document.getElementById('phoneNumber').value = transactionData.phone || document.getElementById('mobileNumber').value;
                 document.getElementById('smsMessage').value = message;
                 document.getElementById('smsModal').style.display = 'flex';
             }
@@ -1252,7 +1294,7 @@
                 const riskLevel = transaction.riskScore >= 60 ? 'HIGH RISK' : 
                                 transaction.riskScore >= 30 ? 'MEDIUM RISK' : 'LOW RISK';
                 
-                return `🚨 FRAUD ALERT: Transaction $${transaction.amount} at ${transaction.location}. Risk: ${transaction.riskScore}% (${riskLevel}). Account: ${transaction.accNo}. Timestamp: ${transaction.timestamp}. Please verify immediately.`;
+                return `🚨 FRAUD ALERT: Transaction $${transaction.amount.toLocaleString()} at ${transaction.location}. Risk: ${transaction.riskScore}% (${riskLevel}). Account: ${transaction.accNo}. Timestamp: ${new Date().toLocaleString()}. Please verify immediately.`;
             }
 
             // Email Modal
@@ -1261,7 +1303,7 @@
                 const subject = this.generateEmailSubject(transactionData);
                 const message = this.generateEmailMessage(transactionData);
                 
-                document.getElementById('emailAddress').value = transactionData.emailAddress;
+                document.getElementById('emailTo').value = transactionData.email || document.getElementById('emailAddress').value;
                 document.getElementById('emailSubject').value = subject;
                 document.getElementById('emailMessage').value = message;
                 document.getElementById('emailModal').style.display = 'flex';
@@ -1279,13 +1321,13 @@
                 
                 return `Dear Security Team,
 
-We have detected a ${riskLevel.toLowerCase()} transaction that requires your immediate attention:
+We have detected a ${riskLevel.toLowerCase()} transaction that requires your attention:
 
 TRANSACTION DETAILS:
-• Account Number: ${transaction.accNo} (${transaction.accountName})
+• Account Number: ${transaction.accNo}
 • Transaction Amount: $${transaction.amount.toLocaleString()}
 • Location: ${transaction.location}
-• Timestamp: ${transaction.timestamp}
+• Timestamp: ${new Date().toLocaleString()}
 • Risk Score: ${transaction.riskScore}% (${riskLevel})
 • Remaining Balance: $${transaction.remainingBalance.toLocaleString()}
 
@@ -1313,28 +1355,7 @@ This is an automated alert. Please do not reply to this email.`;
                 });
             }
 
-            // REAL SMS Alert via Twilio
-            async sendSMSDirect(phoneNumber, message) {
-                
-                const response = await fetch('/api/send-sms', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                        to: phoneNumber,
-                     message: message,
-                        twilio: CONFIG.twilio
-                  })
-                 });
-                
-                // For demo, simulate successful SMS sending
-                return new Promise((resolve) => {
-                    setTimeout(() => {
-                        console.log(`📱 SMS sent to ${phoneNumber}: ${message}`);
-                        resolve({ success: true, message: 'SMS sent successfully' });
-                    }, 1000);
-                });
-            }
-
+            // REAL SMS Alert
             async sendRealSMS(phoneNumber = null, transactionData = null) {
                 if (!this.smsActive) {
                     this.showAlert('❌ SMS service is currently offline', 'error');
@@ -1358,11 +1379,23 @@ This is an automated alert. Please do not reply to this email.`;
                         sendBtn.innerHTML = '<div class="loading-spinner"></div> Sending...';
                     }
 
-                    const result = await this.sendSMSDirect(phone, message);
+                    const response = await fetch(CONFIG.endpoints.sendSMS, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            phoneNumber: phone,
+                            message: message
+                        })
+                    });
+
+                    const result = await response.json();
 
                     if (result.success) {
                         this.showAlert('✅ REAL SMS sent successfully to your phone!', 'success');
                         this.closeModal();
+                        this.logAlert('📱 Manual SMS alert sent');
                         console.log('📱 SMS sent via Twilio:', result);
                     } else {
                         throw new Error(result.error || 'Failed to send SMS');
@@ -1370,7 +1403,7 @@ This is an automated alert. Please do not reply to this email.`;
 
                 } catch (error) {
                     console.error('SMS error:', error);
-                    this.showAlert('❌ Failed to send SMS. Please check your Twilio credentials.', 'error');
+                    this.showAlert('❌ Failed to send SMS: ' + error.message, 'error');
                 } finally {
                     const sendBtn = document.getElementById('sendSMS');
                     if (sendBtn) {
@@ -1380,14 +1413,14 @@ This is an automated alert. Please do not reply to this email.`;
                 }
             }
 
-            // REAL Email Report via EmailJS
+            // REAL Email Report
             async sendRealEmail(emailAddress = null, transactionData = null) {
                 if (!this.emailActive) {
                     this.showAlert('❌ Email service is currently offline', 'error');
                     return;
                 }
 
-                const email = emailAddress || document.getElementById('emailAddress').value;
+                const email = emailAddress || document.getElementById('emailTo').value;
                 const transaction = transactionData || this.currentTransaction;
                 const subject = document.getElementById('emailSubject')?.value || this.generateEmailSubject(transaction);
                 const message = document.getElementById('emailMessage')?.value || this.generateEmailMessage(transaction);
@@ -1405,33 +1438,32 @@ This is an automated alert. Please do not reply to this email.`;
                         sendBtn.innerHTML = '<div class="loading-spinner"></div> Sending...';
                     }
 
-                    const templateParams = {
-                        to_email: email,
-                        subject: subject,
-                        message: message,
-                        transaction_id: transaction.id,
-                        account_number: transaction.accNo,
-                        amount: transaction.amount,
-                        risk_score: transaction.riskScore
-                    };
+                    const response = await fetch(CONFIG.endpoints.sendEmail, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            email: email,
+                            subject: subject,
+                            message: message
+                        })
+                    });
 
-                    const result = await emailjs.send(
-                        CONFIG.emailjs.serviceId,
-                        CONFIG.emailjs.templateId,
-                        templateParams
-                    );
+                    const result = await response.json();
 
-                    if (result.status === 200) {
+                    if (result.success) {
                         this.showAlert('✅ REAL Email sent successfully!', 'success');
                         this.closeModal();
+                        this.logAlert('📧 Manual Email alert sent');
                         console.log('📧 Email sent:', result);
                     } else {
-                        throw new Error('Failed to send email');
+                        throw new Error(result.error || 'Failed to send email');
                     }
 
                 } catch (error) {
                     console.error('Email error:', error);
-                    this.showAlert('❌ Failed to send email. Please check your EmailJS configuration.', 'error');
+                    this.showAlert('❌ Failed to send email: ' + error.message, 'error');
                 } finally {
                     const sendBtn = document.getElementById('sendEmail');
                     if (sendBtn) {
@@ -1439,6 +1471,49 @@ This is an automated alert. Please do not reply to this email.`;
                         sendBtn.innerHTML = 'Send Real Email';
                     }
                 }
+            }
+
+            // Alert logging
+            logAlert(message) {
+                this.alertLog.unshift({
+                    message: message,
+                    timestamp: new Date().toLocaleTimeString()
+                });
+                
+                // Keep only last 10 alerts
+                if (this.alertLog.length > 10) {
+                    this.alertLog = this.alertLog.slice(0, 10);
+                }
+                
+                this.updateAlertLog();
+            }
+
+            updateAlertLog() {
+                const alertLogDiv = document.getElementById('alertLog');
+                if (this.alertLog.length === 0) {
+                    alertLogDiv.innerHTML = '<div class="alert-item">No alerts yet. Process transactions to see real-time alerts.</div>';
+                    return;
+                }
+                
+                alertLogDiv.innerHTML = this.alertLog.map(alert => 
+                    `<div class="alert-item"><strong>${alert.timestamp}</strong> - ${alert.message}</div>`
+                ).join('');
+            }
+
+            // Transaction History Management
+            addTransactionToHistory(transaction) {
+                this.transactions.unshift({
+                    ...transaction,
+                    timestamp: new Date().toLocaleString(),
+                    accountName: this.getAccountName(transaction.accNo)
+                });
+                this.saveToLocalStorage();
+                this.displayTransactionHistory();
+            }
+
+            getAccountName(accNo) {
+                const account = this.accounts.find(acc => acc.accNo === accNo);
+                return account ? account.name : 'Unknown';
             }
 
             loadTransactionHistory() {
@@ -1473,13 +1548,13 @@ This is an automated alert. Please do not reply to this email.`;
                         <div class="txn-details">
                             <div>📍 ${txn.location}</div>
                             <div>🕒 ${txn.timestamp}</div>
-                            <div>📱 ${txn.mobileNumber}</div>
-                            <div>📧 ${txn.emailAddress}</div>
+                            <div>📱 ${txn.phone || txn.mobileNumber}</div>
+                            <div>📧 ${txn.email || txn.emailAddress}</div>
                         </div>
                         <div class="alert-badge ${txn.status}">
                             ${txn.status === 'suspicious' ? '🚨 Suspicious' : '✅ Clean'} (${txn.riskScore}%)
                         </div>
-                        ${txn.alerts.length > 0 ? `
+                        ${txn.alerts && txn.alerts.length > 0 ? `
                             <div class="alerts">
                                 ${txn.alerts.map(alert => `<span class="alert-tag">${alert}</span>`).join('')}
                             </div>
@@ -1592,7 +1667,74 @@ This is an automated alert. Please do not reply to this email.`;
 
             saveToLocalStorage() {
                 localStorage.setItem('fraudTransactions', JSON.stringify(this.transactions));
-                localStorage.setItem('fraudAccounts', JSON.stringify(this.accounts));
+            }
+
+            // PDF Generation
+            generatePDFReport(transactionData) {
+                try {
+                    const { jsPDF } = window.jspdf;
+                    const doc = new jsPDF();
+                    
+                    // Add header
+                    doc.setFillColor(44, 62, 80);
+                    doc.rect(0, 0, 210, 30, 'F');
+                    doc.setTextColor(255, 255, 255);
+                    doc.setFontSize(20);
+                    doc.text('Fraud Detection System', 105, 15, { align: 'center' });
+                    doc.setFontSize(12);
+                    doc.text('Transaction Security Report', 105, 22, { align: 'center' });
+                    
+                    // Add transaction details
+                    doc.setTextColor(0, 0, 0);
+                    doc.setFontSize(16);
+                    doc.text('Transaction Details', 20, 45);
+                    
+                    doc.setFontSize(12);
+                    let yPos = 55;
+                    doc.text(`Transaction ID: ${transactionData.id}`, 20, yPos);
+                    yPos += 8;
+                    doc.text(`Account: ${transactionData.accNo} - ${transactionData.accountName}`, 20, yPos);
+                    yPos += 8;
+                    doc.text(`Amount: $${transactionData.amount.toLocaleString()}`, 20, yPos);
+                    yPos += 8;
+                    doc.text(`Location: ${transactionData.location}`, 20, yPos);
+                    yPos += 8;
+                    doc.text(`Timestamp: ${transactionData.timestamp}`, 20, yPos);
+                    yPos += 8;
+                    doc.text(`Risk Score: ${transactionData.riskScore}%`, 20, yPos);
+                    yPos += 8;
+                    doc.text(`Status: ${transactionData.status}`, 20, yPos);
+                    yPos += 8;
+                    doc.text(`Remaining Balance: $${transactionData.remainingBalance.toLocaleString()}`, 20, yPos);
+                    
+                    // Add alerts
+                    yPos += 15;
+                    doc.setFontSize(16);
+                    doc.text('Security Alerts', 20, yPos);
+                    
+                    doc.setFontSize(10);
+                    transactionData.alerts.forEach(alert => {
+                        yPos += 8;
+                        if (yPos > 270) {
+                            doc.addPage();
+                            yPos = 20;
+                        }
+                        doc.text(`• ${alert}`, 25, yPos);
+                    });
+                    
+                    // Add footer
+                    doc.setFontSize(10);
+                    doc.setTextColor(128, 128, 128);
+                    doc.text(`Generated on ${new Date().toLocaleString()}`, 105, 285, { align: 'center' });
+                    
+                    // Save the PDF
+                    doc.save(`fraud-report-${transactionData.id}.pdf`);
+                    
+                    this.showAlert('📄 PDF report generated successfully', 'success');
+                } catch (error) {
+                    console.error('PDF generation error:', error);
+                    this.showAlert('Error generating PDF report', 'error');
+                }
             }
 
             showAlert(message, type = 'info') {
