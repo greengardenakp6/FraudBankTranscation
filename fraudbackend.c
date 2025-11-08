@@ -68,12 +68,13 @@ int calculateRiskScore(Transaction *txn) {
     int score = 0;
     
     for (int i = 0; i < txn->alertCount; i++) {
-        if (strstr(txn->alerts[i], "High-value")) score += 25;
         if (strstr(txn->alerts[i], "Very high-value")) score += 50;
-        if (strstr(txn->alerts[i], "Rapid multiple")) score += 30;
-        if (strstr(txn->alerts[i], "Impossible travel")) score += 40;
-        if (strstr(txn->alerts[i], "Location change")) score += 10;
-        if (strstr(txn->alerts[i], "Round amount")) score += 5;
+        else if (strstr(txn->alerts[i], "High-value")) score += 25;
+        else if (strstr(txn->alerts[i], "Multiple rapid")) score += 30;
+        else if (strstr(txn->alerts[i], "Impossible travel")) score += 40;
+        else if (strstr(txn->alerts[i], "Location change")) score += 10;
+        else if (strstr(txn->alerts[i], "Round amount")) score += 5;
+        else if (strstr(txn->alerts[i], "Unusual location")) score += 15;
     }
     
     return (score > 100) ? 100 : score;
@@ -117,17 +118,27 @@ void checkFraud(Transaction *txn) {
         
         // Impossible travel check (less than 2 hours between distant locations)
         if (timeDiff < 7200) { // 2 hours
-            int impossibleTravel = 0;
-            
             if ((strcmp(acc->lastLocation, "Tokyo") == 0 && strcmp(txn->location, "New York") == 0) ||
                 (strcmp(acc->lastLocation, "London") == 0 && strcmp(txn->location, "Sydney") == 0) ||
                 (strcmp(acc->lastLocation, "Paris") == 0 && strcmp(txn->location, "Dubai") == 0)) {
-                impossibleTravel = 1;
                 addAlert(txn, "Impossible travel detected");
             } else if (strcmp(acc->lastLocation, txn->location) != 0) {
                 addAlert(txn, "Location change detected");
             }
         }
+    }
+
+    // Unusual location check
+    const char *usualLocations[] = {"New York", "London", "Tokyo", "Paris", "Sydney", "Dubai"};
+    int found = 0;
+    for (int i = 0; i < 6; i++) {
+        if (strcmp(txn->location, usualLocations[i]) == 0) {
+            found = 1;
+            break;
+        }
+    }
+    if (!found) {
+        addAlert(txn, "Unusual location");
     }
 
     // Round amount check
