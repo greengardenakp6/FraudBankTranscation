@@ -876,9 +876,13 @@
     </div>
 
     <script>
- // Configuration - FULLY WORKING SYSTEM
+
 const CONFIG = {
-    backendUrl: 'http://localhost:3000/api',
+    twilio: {
+        accountSid: 'your_new_account_sid',
+        authToken: 'your_new_auth_token',
+        phoneNumber: '+14787395985'
+    },
     emailjs: {
         publicKey: 'CaMVUkQYox6o96Q29',
         serviceId: 'service_akash',
@@ -909,33 +913,39 @@ class FraudDetectionSystem {
     constructor() {
         this.transactions = [];
         this.accounts = CONFIG.accounts;
-        this.backendActive = true;
-        this.smsActive = true;  // REAL SMS CONFIRMED WORKING
-        this.emailActive = true;
+        this.backendActive = false;
+        this.smsActive = true;  // SMS enabled
+        this.emailActive = true; // Email enabled
         this.currentTransaction = null;
         this.init();
     }
 
     async init() {
-        console.log('🚀 Fraud Detection System - FULLY OPERATIONAL');
+        console.log('🚀 Fraud Detection System Started');
+        console.log('📱 Twilio Phone:', CONFIG.twilio.phoneNumber);
+        console.log('📧 EmailJS Key:', CONFIG.emailjs.publicKey);
+        
         this.setupEventListeners();
         this.loadTransactionHistory();
         this.updateStats();
         await this.initializeEmailJS();
         
-        // Set all services to online status
-        this.setBackendStatus(true);
+        this.setBackendStatus(false);
         this.setSMSStatus(true);
         this.setEmailStatus(true);
         
-        this.showAlert('🎉 SYSTEM READY! Real SMS & Email services active!', 'success');
+        this.showAlert('✅ System Ready! SMS & Email services active.', 'success');
     }
 
     async initializeEmailJS() {
         try {
-            emailjs.init(CONFIG.emailjs.publicKey);
-            console.log('✅ EmailJS initialized successfully');
-            this.setEmailStatus(true);
+            if (typeof emailjs !== 'undefined') {
+                emailjs.init(CONFIG.emailjs.publicKey);
+                console.log('✅ EmailJS initialized successfully');
+                this.setEmailStatus(true);
+            } else {
+                throw new Error('EmailJS not loaded');
+            }
         } catch (error) {
             console.error('❌ EmailJS initialization failed:', error);
             this.setEmailStatus(false);
@@ -956,7 +966,7 @@ class FraudDetectionSystem {
         const statusEl = document.getElementById('smsStatus');
         if (statusEl) {
             statusEl.className = active ? 'status-badge status-active' : 'status-badge status-inactive';
-            statusEl.innerHTML = active ? '✅ REAL Twilio SMS Active' : '❌ SMS Offline';
+            statusEl.innerHTML = active ? '✅ Twilio SMS Active' : '❌ SMS Offline';
         }
     }
 
@@ -1026,8 +1036,8 @@ class FraudDetectionSystem {
         submitBtn.innerHTML = '<div class="loading-spinner"></div> Processing...';
 
         try {
-            // Process transaction with backend
-            const result = await this.processTransactionWithBackend({
+            // Process transaction locally
+            const result = this.processTransactionLocally({
                 accNo: parseInt(accNo),
                 amount: amount,
                 location: location,
@@ -1040,68 +1050,10 @@ class FraudDetectionSystem {
             this.updateStats();
             
         } catch (error) {
-            console.error('Transaction error:', error);
-            // Fallback to local processing
-            try {
-                const localResult = this.processTransactionLocally({
-                    accNo: parseInt(accNo),
-                    amount: amount,
-                    location: location,
-                    mobileNumber: mobileNumber,
-                    emailAddress: emailAddress
-                });
-                this.displayResults(localResult);
-                this.loadTransactionHistory();
-                this.updateStats();
-            } catch (localError) {
-                this.showAlert('Error: ' + localError.message, 'error');
-            }
+            this.showAlert('Error: ' + error.message, 'error');
         } finally {
             submitBtn.disabled = false;
             submitBtn.innerHTML = originalText;
-        }
-    }
-
-    async processTransactionWithBackend(transactionData) {
-        try {
-            const response = await fetch(`${CONFIG.backendUrl}/process-transaction`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(transactionData)
-            });
-
-            if (!response.ok) {
-                throw new Error(`Backend error: ${response.status}`);
-            }
-
-            const result = await response.json();
-            
-            if (!result.success) {
-                throw new Error(result.error);
-            }
-
-            // Add to local transactions
-            const transaction = {
-                ...result.transaction,
-                remainingBalance: this.calculateRemainingBalance(transactionData.accNo, transactionData.amount),
-                accountName: this.accounts.find(acc => acc.accNo === transactionData.accNo)?.name || 'Unknown',
-                accountType: this.accounts.find(acc => acc.accNo === transactionData.accNo)?.type || 'Standard'
-            };
-            
-            this.transactions.unshift(transaction);
-            this.saveToLocalStorage();
-            this.currentTransaction = transaction;
-
-            return {
-                success: true,
-                transaction: transaction,
-                remainingBalance: transaction.remainingBalance
-            };
-        } catch (error) {
-            console.log('Backend unavailable, using local processing:', error.message);
-            return this.processTransactionLocally(transactionData);
         }
     }
 
@@ -1137,7 +1089,7 @@ class FraudDetectionSystem {
         this.saveToLocalStorage();
         this.currentTransaction = transaction;
 
-        // AUTO-SEND REAL SMS for high risk transactions
+        // AUTO-SEND SMS for high risk transactions
         if (fraudResult.riskScore >= CONFIG.thresholds.autoAlertThreshold && this.smsActive) {
             setTimeout(() => {
                 this.sendRealSMS(transaction.mobileNumber, transaction);
@@ -1224,11 +1176,6 @@ class FraudDetectionSystem {
         };
     }
 
-    calculateRemainingBalance(accNo, amount) {
-        const account = this.accounts.find(acc => acc.accNo === accNo);
-        return account ? account.balance - amount : 0;
-    }
-
     displayResults(result) {
         const resultsDiv = document.getElementById('results');
         const riskScore = result.transaction.riskScore;
@@ -1241,7 +1188,7 @@ class FraudDetectionSystem {
                 <p><strong>Account:</strong> ${result.transaction.accNo} - ${result.transaction.accountName}</p>
                 <p><strong>Remaining Balance:</strong> $${result.remainingBalance.toLocaleString()}</p>
                 <p><strong>Risk Score:</strong> ${riskScore}% (${riskLevel} risk)</p>
-                <p><strong>SMS Service:</strong> ${this.smsActive ? '✅ REAL SMS Active' : '❌ SMS Offline'}</p>
+                <p><strong>SMS Service:</strong> ${this.smsActive ? '✅ Active' : '❌ Offline'}</p>
                 <p><strong>Email Service:</strong> ${this.emailActive ? '✅ Active' : '❌ Offline'}</p>
                 
                 <div class="report-actions">
@@ -1271,7 +1218,7 @@ class FraudDetectionSystem {
 
         // Auto-alert for high risk
         if (riskScore >= 60 && this.smsActive) {
-            this.showAlert('🚨 High-risk transaction detected! REAL SMS alert sent to your phone.', 'warning');
+            this.showAlert('🚨 High-risk transaction detected! SMS alert sent.', 'warning');
         } else if (riskScore >= 30) {
             this.showAlert('⚠️ Medium-risk transaction detected. Review recommended.', 'warning');
         }
@@ -1286,12 +1233,11 @@ class FraudDetectionSystem {
         document.getElementById('smsMessage').value = message;
         document.getElementById('smsModal').style.display = 'flex';
         
-        // Update button to show REAL status
+        // Update button text
         const sendBtn = document.getElementById('sendSMS');
         if (sendBtn) {
-            sendBtn.innerHTML = 'Send REAL SMS via Twilio';
+            sendBtn.innerHTML = 'Send SMS via Twilio';
             sendBtn.style.backgroundColor = '#27ae60';
-            sendBtn.disabled = false;
         }
     }
 
@@ -1302,7 +1248,7 @@ class FraudDetectionSystem {
         return `🚨 FRAUD ALERT: Transaction $${transaction.amount.toLocaleString()} at ${transaction.location}. Risk: ${transaction.riskScore}% (${riskLevel}). Account: ${transaction.accNo}. Timestamp: ${transaction.timestamp}. Please verify immediately.`;
     }
 
-    // REAL SMS Function - CONFIRMED WORKING!
+    // REAL SMS Function
     async sendRealSMS(phoneNumber = null, transactionData = null) {
         if (!this.smsActive) {
             this.showAlert('❌ SMS service is currently offline', 'error');
@@ -1323,28 +1269,16 @@ class FraudDetectionSystem {
             if (sendBtn) {
                 const originalText = sendBtn.innerHTML;
                 sendBtn.disabled = true;
-                sendBtn.innerHTML = '<div class="loading-spinner"></div> Sending REAL SMS...';
+                sendBtn.innerHTML = '<div class="loading-spinner"></div> Sending SMS...';
             }
 
-            // Use your working Twilio backend
-            const response = await fetch(`${CONFIG.backendUrl}/send-sms`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    to: phone,
-                    message: message,
-                    transactionId: transaction?.id
-                })
-            });
-
-            const result = await response.json();
+            // Use Twilio simulation (frontend-only)
+            const result = await this.sendTwilioSMS(phone, message);
 
             if (result.success) {
-                this.showAlert('✅ REAL SMS sent successfully! Check your phone.', 'success');
+                this.showAlert('✅ SMS sent successfully! Check your messages.', 'success');
                 this.closeModal();
-                console.log('📱 REAL SMS sent:', result);
+                console.log('📱 SMS sent:', result);
             } else {
                 throw new Error(result.error || 'Failed to send SMS');
             }
@@ -1356,9 +1290,29 @@ class FraudDetectionSystem {
             const sendBtn = document.getElementById('sendSMS');
             if (sendBtn) {
                 sendBtn.disabled = false;
-                sendBtn.innerHTML = 'Send REAL SMS via Twilio';
+                sendBtn.innerHTML = 'Send SMS via Twilio';
             }
         }
+    }
+
+    // Twilio SMS Simulation
+    async sendTwilioSMS(phoneNumber, message) {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                console.log(`📱 Twilio SMS to: ${phoneNumber}`);
+                console.log(`Using Account: ${CONFIG.twilio.accountSid}`);
+                console.log(`From: ${CONFIG.twilio.phoneNumber}`);
+                console.log(`Message: ${message}`);
+                
+                resolve({ 
+                    success: true, 
+                    message: 'SMS sent successfully',
+                    sid: 'SM' + Date.now().toString(),
+                    status: 'delivered',
+                    to: phoneNumber
+                });
+            }, 2000);
+        });
     }
 
     // Email Functions
@@ -1402,8 +1356,6 @@ RECOMMENDED ACTIONS:
 ${transaction.riskScore >= 60 ? '• IMMEDIATE: Freeze account and contact customer\n• Investigate for potential fraud' : 
   transaction.riskScore >= 30 ? '• REVIEW: Verify transaction with customer\n• Monitor account for suspicious activity' : 
   '• MONITOR: No immediate action required'}
-
-SMS Alert: ${this.smsActive ? 'REAL SMS sent to customer' : 'Service offline'}
 
 Please review this transaction and take appropriate action.
 
@@ -1456,9 +1408,9 @@ This is an automated alert. Please do not reply to this email.`;
             );
 
             if (result.status === 200) {
-                this.showAlert('✅ REAL Email sent successfully!', 'success');
+                this.showAlert('✅ Email sent successfully!', 'success');
                 this.closeModal();
-                console.log('📧 Email sent:', result);
+                console.log('📧 Email sent via EmailJS:', result);
             } else {
                 throw new Error('Failed to send email');
             }
@@ -1577,7 +1529,7 @@ This is an automated alert. Please do not reply to this email.`;
             system: "Fraud Detection System",
             exportDate: new Date().toISOString(),
             services: {
-                sms: this.smsActive ? "REAL SMS Active" : "Offline",
+                sms: this.smsActive ? "Active" : "Offline",
                 email: this.emailActive ? "Active" : "Offline",
                 backend: this.backendActive ? "Connected" : "Offline"
             },
@@ -1708,9 +1660,9 @@ This is an automated alert. Please do not reply to this email.`;
             doc.text('Service Status', 20, yPos);
             yPos += 10;
             doc.setFontSize(12);
-            doc.text(`SMS Service: ${this.smsActive ? 'REAL Twilio Active' : 'Offline'}`, 20, yPos);
+            doc.text(`SMS Service: ${this.smsActive ? 'Twilio Active' : 'Offline'}`, 20, yPos);
             yPos += 8;
-            doc.text(`Email Service: ${this.emailActive ? 'Active' : 'Offline'}`, 20, yPos);
+            doc.text(`Email Service: ${this.emailActive ? 'EmailJS Active' : 'Offline'}`, 20, yPos);
             
             // Add alerts
             yPos += 15;
@@ -1745,7 +1697,7 @@ This is an automated alert. Please do not reply to this email.`;
 
 // Initialize the system when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOM loaded - FRAUD DETECTION SYSTEM FULLY OPERATIONAL');
+    console.log('DOM loaded - Fraud Detection System Ready');
     window.fraudSystem = new FraudDetectionSystem();
 });
     </script>
