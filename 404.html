@@ -942,9 +942,9 @@ class FraudDetectionSystem {
         } catch (error) {
             console.log('❌ Backend not available - using simulation mode');
             this.backendActive = true;
-            this.smsActive = true; 
+            this.smsActive = false; 
             this.setBackendStatus(true);
-            this.setSMSStatus(true);
+            this.setSMSStatus(false);
             this.showAlert('⚠️ Backend offline - SMS in simulation mode', 'warning');
         }
     }
