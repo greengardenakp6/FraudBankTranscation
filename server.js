@@ -1,4 +1,3 @@
-
 const express = require('express');
 const { exec } = require('child_process');
 const path = require('path');
@@ -9,11 +8,15 @@ const app = express();
 const port = 3000;
 
 // Twilio Configuration - UPDATED WITH CORRECT CREDENTIALS
-const twilioClient = twilio(
-    'ACf60f450f29fabf5d4dd01680f2052f48',  // Your Account SID
-    '614f4f07bfff3587434f76ae4be21d25'                   // ✅ NEW Auth Token from your screenshot
-);
-const twilioPhoneNumber = '+14787395985';  // Your Twilio phone number
+const TWILIO_CONFIG = {
+    AccountSID: 'ACf60f450f29fabf5d4dd01680f2052f48',
+    AuthToken: '614f4f07bfff3587434f76ae4be21d25',  
+    MyTwilioPhone: '+14787395985'
+};
+
+// Initialize Twilio client
+const twilioClient = twilio(TWILIO_CONFIG.AccountSID, TWILIO_CONFIG.AuthToken);
+const twilioPhoneNumber = TWILIO_CONFIG.MyTwilioPhone;
 
 // EmailJS Configuration
 const EMAILJS_CONFIG = {
