@@ -900,14 +900,7 @@
                 }
             }
 
-            setBackendStatus(active) {
-                this.backendActive = active;
-                const statusEl = document.getElementById('backendStatus');
-                if (statusEl) {
-                    statusEl.className = active ? 'status-badge status-active' : 'status-badge status-inactive';
-                    statusEl.innerHTML = active ? '✅ Backend Ready' : '❌ Backend Offline';
-                }
-            }
+           
 
             setSMSStatus(active) {
                 this.smsActive = active;
@@ -1626,7 +1619,6 @@ This is an automated alert. Please do not reply to this email.`;
             }
         }
 
-        // Initialize the system when page loads
         document.addEventListener('DOMContentLoaded', function() {
             console.log('DOM loaded, initializing system...');
             window.fraudSystem = new FraudDetectionSystem();
