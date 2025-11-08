@@ -911,8 +911,8 @@
             constructor() {
                 this.transactions = [];
                 this.accounts = CONFIG.accounts;
-                this.backendActive = false;
-                this.smsActive = false; // Force SMS to active for demo
+                this.backendActive = true;
+                this.smsActive = true; // Force SMS to active for demo
                 this.emailActive = true;
                 this.currentTransaction = null;
                 this.init();
