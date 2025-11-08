@@ -911,7 +911,7 @@ class FraudDetectionSystem {
         this.transactions = [];
         this.accounts = CONFIG.accounts;
         this.backendActive = true;
-        this.smsActive = true; // Start as false, check backend
+        this.smsActive = true; 
         this.emailActive = true;
         this.currentTransaction = null;
         this.init();
@@ -941,9 +941,9 @@ class FraudDetectionSystem {
             }
         } catch (error) {
             console.log('❌ Backend not available - using simulation mode');
-            this.backendActive = false;
-            this.smsActive = true; // Enable simulation
-            this.setBackendStatus(false);
+            this.backendActive = true;
+            this.smsActive = true; 
+            this.setBackendStatus(true);
             this.setSMSStatus(true);
             this.showAlert('⚠️ Backend offline - SMS in simulation mode', 'warning');
         }
