@@ -5,13 +5,18 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js",
-    "test": "echo \"No tests specified\" && exit 0"
+    "dev": "nodemon server.js",
+    "test": "echo \"No tests specified\" && exit 0",
+    "build-c": "gcc -o fraudbackend fraudbackend.c -lm"
   },
   "dependencies": {
     "express": "^4.18.2",
     "twilio": "^4.19.0",
-    "axios": "^1.6.0"
+    "axios": "^1.6.0",
+    "cors": "^2.8.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
   },
   "keywords": [
     "fraud-detection",
