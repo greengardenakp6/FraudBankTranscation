@@ -910,8 +910,8 @@ class FraudDetectionSystem {
     constructor() {
         this.transactions = [];
         this.accounts = CONFIG.accounts;
-        this.backendActive = false;
-        this.smsActive = false;
+        this.backendActive = false; // Fixed: Start as false
+        this.smsActive = false; // Fixed: Start as false
         this.emailActive = true;
         this.currentTransaction = null;
         this.init();
@@ -941,9 +941,9 @@ class FraudDetectionSystem {
             }
         } catch (error) {
             console.log('❌ Backend not available - using simulation mode');
-            this.backendActive = false;
-            this.smsActive = false;
-            this.setBackendStatus(false);
+            this.backendActive = false; // Fixed: Set to false when backend is down
+            this.smsActive = false; 
+            this.setBackendStatus(false); // Fixed: Set to false
             this.setSMSStatus(false);
             this.showAlert('⚠️ Backend offline - SMS in simulation mode', 'warning');
         }
@@ -1020,6 +1020,12 @@ class FraudDetectionSystem {
                 if (e.target === modal) this.closeModal();
             });
         });
+
+        // Add test connection button if it exists
+        const testBtn = document.getElementById('testConnection');
+        if (testBtn) {
+            testBtn.addEventListener('click', () => this.testSMSConnection());
+        }
     }
 
     async handleTransaction(e) {
@@ -1084,7 +1090,7 @@ class FraudDetectionSystem {
             status: fraudResult.isSuspicious ? 'suspicious' : 'clean',
             riskScore: fraudResult.riskScore,
             remainingBalance: account.balance,
-            accountName: account.name, // FIXED: Use account.name directly
+            accountName: account.name,
             accountType: account.type
         };
 
@@ -1153,7 +1159,6 @@ class FraudDetectionSystem {
         const riskScore = result.transaction.riskScore;
         const riskLevel = riskScore >= 60 ? 'high' : riskScore >= 30 ? 'medium' : 'low';
         
-        // FIXED: Proper HTML formatting with correct account name
         let html = `
             <div class="alert alert-success">
                 <h3>✅ Transaction Successful</h3>
@@ -1178,7 +1183,6 @@ class FraudDetectionSystem {
             </div>
         `;
 
-        // Add alerts with proper formatting
         result.transaction.alerts.forEach(alert => {
             const isWarning = !alert.includes("No fraud detected");
             html += `<div class="alert ${isWarning ? 'alert-warning' : 'alert-info'}">${isWarning ? '⚠' : '✅'} ${alert}</div>`;
@@ -1610,6 +1614,26 @@ Fraud Detection System`;
         } catch (error) {
             console.error('PDF error:', error);
             this.showAlert('Error generating PDF report', 'error');
+        }
+    }
+
+    // New method to test SMS connection
+    async testSMSConnection() {
+        try {
+            this.showAlert('🧪 Testing SMS connection to backend...', 'info');
+            
+            const response = await fetch(`${CONFIG.backendUrl}/health`);
+            const data = await response.json();
+            
+            if (data.status === 'OK') {
+                this.showAlert('✅ Backend is connected and healthy! REAL SMS is ready.', 'success');
+                return true;
+            } else {
+                throw new Error('Backend returned non-OK status');
+            }
+        } catch (error) {
+            this.showAlert('❌ Backend connection failed: ' + error.message, 'error');
+            return false;
         }
     }
 }
