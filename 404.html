@@ -566,58 +566,10 @@
             border: 1px solid #f5c6cb;
         }
 
-        .twilio-info {
-            background: #f0f8ff;
-            border: 1px solid #3498db;
-            border-radius: 8px;
-            padding: 15px;
-            margin-top: 15px;
-        }
-
-        .twilio-info h4 {
-            color: #2c3e50;
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .twilio-info p {
-            font-size: 0.9em;
-            color: #555;
-            margin-bottom: 10px;
-        }
-
-        .twilio-info a {
-            color: #3498db;
-            text-decoration: none;
-            font-weight: 600;
-        }
-
-        .twilio-info a:hover {
-            text-decoration: underline;
-        }
-
-        .sms-fix-info {
+        .status-simulation {
             background: #fff3cd;
-            border: 1px solid #ffc107;
-            border-radius: 8px;
-            padding: 15px;
-            margin-top: 15px;
-        }
-
-        .sms-fix-info h4 {
             color: #856404;
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .sms-fix-info p {
-            font-size: 0.9em;
-            color: #856404;
-            margin-bottom: 10px;
+            border: 1px solid #ffeaa7;
         }
 
         .connection-troubleshoot {
@@ -643,6 +595,28 @@
 
         .connection-troubleshoot li {
             margin-bottom: 5px;
+            font-size: 0.9em;
+        }
+
+        .quick-fix-section {
+            background: #e8f5e8;
+            border: 1px solid #28a745;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+
+        .quick-fix-section h4 {
+            color: #155724;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .quick-fix-section p {
+            color: #155724;
+            margin-bottom: 10px;
             font-size: 0.9em;
         }
 
@@ -778,8 +752,8 @@
                     <div id="backendStatus" class="status-badge status-inactive">
                         <span>❌ Backend Offline</span>
                     </div>
-                    <div id="smsStatus" class="status-badge status-inactive">
-                        <span>❌ SMS Offline</span>
+                    <div id="smsStatus" class="status-badge status-simulation">
+                        <span>🔄 SMS Simulation</span>
                     </div>
                     <div id="emailStatus" class="status-badge status-active">
                         <span>✅ Email Service Active</span>
@@ -803,6 +777,19 @@
                     </ul>
                     <button id="testConnection" class="btn btn-secondary" style="margin-top: 10px; padding: 8px 15px;">
                         🔄 Retry Connection
+                    </button>
+                </div>
+                
+                <div class="quick-fix-section">
+                    <h4>🚀 Quick Fix - Local Backend</h4>
+                    <p>To enable REAL SMS functionality immediately:</p>
+                    <ol style="margin-left: 20px; margin-bottom: 10px;">
+                        <li>Download and run the backend server locally</li>
+                        <li>Update the backend URL in the code</li>
+                        <li>Configure Twilio credentials</li>
+                    </ol>
+                    <button id="enableSimulation" class="btn btn-primary" style="margin-top: 10px; padding: 8px 15px;">
+                        🎯 Enable Enhanced Simulation Mode
                     </button>
                 </div>
             </div>
@@ -945,6 +932,7 @@
                 this.smsActive = false;
                 this.emailActive = true;
                 this.currentTransaction = null;
+                this.enhancedSimulation = false;
                 this.init();
             }
 
@@ -964,7 +952,8 @@
                         method: 'GET',
                         headers: {
                             'Content-Type': 'application/json'
-                        }
+                        },
+                        timeout: 5000
                     });
                     
                     if (!response.ok) {
@@ -984,7 +973,7 @@
                 } catch (error) {
                     console.log('❌ Backend not available - using simulation mode:', error.message);
                     this.backendActive = false;
-                    this.smsActive = false;
+                    this.smsActive = true; // Enable SMS simulation
                     this.setBackendStatus(false);
                     this.setSMSStatus(false);
                     this.showAlert('⚠️ Backend offline - SMS in simulation mode', 'warning');
@@ -1020,9 +1009,12 @@
                     if (this.backendActive && active) {
                         statusEl.className = 'status-badge status-active';
                         statusEl.innerHTML = '✅ REAL SMS Active';
+                    } else if (active && this.enhancedSimulation) {
+                        statusEl.className = 'status-badge status-simulation';
+                        statusEl.innerHTML = '🎯 Enhanced Simulation';
                     } else if (active) {
-                        statusEl.className = 'status-badge status-active';
-                        statusEl.innerHTML = '✅ SMS Simulation';
+                        statusEl.className = 'status-badge status-simulation';
+                        statusEl.innerHTML = '🔄 SMS Simulation';
                     } else {
                         statusEl.className = 'status-badge status-inactive';
                         statusEl.innerHTML = '❌ SMS Offline';
@@ -1047,6 +1039,7 @@
                 document.getElementById('clearHistory').addEventListener('click', () => this.clearHistory());
                 document.getElementById('exportData').addEventListener('click', () => this.exportData());
                 document.getElementById('testConnection').addEventListener('click', () => this.testConnection());
+                document.getElementById('enableSimulation').addEventListener('click', () => this.enableEnhancedSimulation());
                 
                 document.querySelectorAll('.close-modal').forEach(btn => {
                     btn.addEventListener('click', () => this.closeModal());
@@ -1203,7 +1196,7 @@
                         <p><strong>Account:</strong> ${result.transaction.accNo} - ${result.transaction.accountName}</p>
                         <p><strong>Remaining Balance:</strong> $${result.remainingBalance.toLocaleString()}</p>
                         <p><strong>Risk Score:</strong> ${riskScore}% (${riskLevel} risk)</p>
-                        <p><strong>SMS Service:</strong> ${this.backendActive ? '✅ REAL SMS Active' : '✅ SMS Simulation'}</p>
+                        <p><strong>SMS Service:</strong> ${this.backendActive ? '✅ REAL SMS Active' : this.enhancedSimulation ? '🎯 Enhanced Simulation' : '🔄 SMS Simulation'}</p>
                         <p><strong>Email Service:</strong> ${this.emailActive ? '✅ Active' : '❌ Offline'}</p>
                         
                         <div class="report-actions">
@@ -1229,7 +1222,7 @@
                 resultsDiv.scrollIntoView({ behavior: 'smooth' });
 
                 if (riskScore >= 60 && this.smsActive) {
-                    this.showAlert(`🚨 High-risk transaction detected! ${this.backendActive ? 'REAL SMS sent!' : 'SMS simulation activated.'}`, 'warning');
+                    this.showAlert(`🚨 High-risk transaction detected! ${this.backendActive ? 'REAL SMS sent!' : this.enhancedSimulation ? 'Enhanced simulation activated!' : 'SMS simulation activated.'}`, 'warning');
                 }
             }
 
@@ -1243,8 +1236,8 @@
                 
                 const sendBtn = document.getElementById('sendSMS');
                 if (sendBtn) {
-                    sendBtn.innerHTML = this.backendActive ? 'Send REAL SMS via Twilio' : 'Send SMS (Simulation)';
-                    sendBtn.style.backgroundColor = this.backendActive ? '#27ae60' : '#6c757d';
+                    sendBtn.innerHTML = this.backendActive ? 'Send REAL SMS via Twilio' : this.enhancedSimulation ? 'Send Enhanced SMS Simulation' : 'Send SMS (Simulation)';
+                    sendBtn.style.backgroundColor = this.backendActive ? '#27ae60' : this.enhancedSimulation ? '#ff6b00' : '#6c757d';
                 }
             }
 
@@ -1301,8 +1294,13 @@
                             throw new Error(result.error || 'Failed to send SMS');
                         }
                     } else {
-                        // Fallback to simulation
-                        await this.sendSMSSimulation(phone, message);
+                        // Enhanced simulation mode
+                        if (this.enhancedSimulation) {
+                            await this.sendEnhancedSMSSimulation(phone, message);
+                        } else {
+                            // Regular simulation mode
+                            await this.sendSMSSimulation(phone, message);
+                        }
                     }
 
                 } catch (error) {
@@ -1316,7 +1314,7 @@
                     const sendBtn = document.getElementById('sendSMS');
                     if (sendBtn) {
                         sendBtn.disabled = false;
-                        sendBtn.innerHTML = this.backendActive ? 'Send REAL SMS via Twilio' : 'Send SMS (Simulation)';
+                        sendBtn.innerHTML = this.backendActive ? 'Send REAL SMS via Twilio' : this.enhancedSimulation ? 'Send Enhanced SMS Simulation' : 'Send SMS (Simulation)';
                     }
                 }
             }
@@ -1330,6 +1328,33 @@
                         this.closeModal();
                         resolve({ success: true, message: 'SMS sent successfully (simulated)' });
                     }, 2000);
+                });
+            }
+
+            async sendEnhancedSMSSimulation(phoneNumber, message) {
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        console.log(`📱 Enhanced SMS Simulation to: ${phoneNumber}`);
+                        console.log(`Message: ${message}`);
+                        
+                        // Create a more realistic simulation
+                        const simulationResult = {
+                            success: true,
+                            message: 'SMS sent successfully (enhanced simulation)',
+                            simulationDetails: {
+                                phoneNumber: phoneNumber,
+                                messageLength: message.length,
+                                timestamp: new Date().toISOString(),
+                                simulatedProvider: 'Twilio',
+                                simulatedCost: 0.0075
+                            }
+                        };
+                        
+                        console.log('Enhanced simulation details:', simulationResult);
+                        this.showAlert('✅ Enhanced SMS Simulation: Message would have been sent via Twilio!', 'success');
+                        this.closeModal();
+                        resolve(simulationResult);
+                    }, 1500);
                 });
             }
           
@@ -1364,7 +1389,7 @@ TIMESTAMP: ${transaction.timestamp}
 ALERTS:
 ${transaction.alerts.map(alert => `• ${alert}`).join('\n')}
 
-SMS Alert: ${this.smsActive ? 'Sent to customer' : 'Not sent'}
+SMS Alert: ${this.smsActive ? (this.backendActive ? 'REAL SMS sent' : this.enhancedSimulation ? 'Enhanced simulation' : 'Simulation sent') : 'Not sent'}
 
 Please review immediately.
 
@@ -1517,7 +1542,7 @@ Fraud Detection System`;
                     system: "Fraud Detection System",
                     exportDate: new Date().toISOString(),
                     services: {
-                        sms: this.backendActive ? "REAL SMS Active" : "Simulation",
+                        sms: this.backendActive ? "REAL SMS Active" : this.enhancedSimulation ? "Enhanced Simulation" : "Simulation",
                         email: this.emailActive ? "Active" : "Offline"
                     },
                     statistics: {
@@ -1628,7 +1653,7 @@ Fraud Detection System`;
                     doc.text('Service Status', 20, yPos);
                     yPos += 10;
                     doc.setFontSize(12);
-                    doc.text(`SMS Service: ${this.backendActive ? 'REAL Twilio Active' : 'Simulation'}`, 20, yPos); yPos += 8;
+                    doc.text(`SMS Service: ${this.backendActive ? 'REAL Twilio Active' : this.enhancedSimulation ? 'Enhanced Simulation' : 'Simulation'}`, 20, yPos); yPos += 8;
                     doc.text(`Email Service: ${this.emailActive ? 'Active' : 'Offline'}`, 20, yPos);
                     
                     yPos += 15;
@@ -1674,6 +1699,21 @@ Fraud Detection System`;
                 } catch (error) {
                     this.showAlert('❌ Backend connection failed: ' + error.message, 'error');
                     return false;
+                }
+            }
+
+            enableEnhancedSimulation() {
+                this.enhancedSimulation = true;
+                this.smsActive = true;
+                this.setSMSStatus(true);
+                this.showAlert('🎯 Enhanced Simulation Mode Activated! More realistic SMS simulation enabled.', 'success');
+                
+                // Update the button
+                const enableBtn = document.getElementById('enableSimulation');
+                if (enableBtn) {
+                    enableBtn.disabled = true;
+                    enableBtn.innerHTML = '✅ Enhanced Mode Active';
+                    enableBtn.style.backgroundColor = '#28a745';
                 }
             }
         }
