@@ -1313,59 +1313,134 @@ Please review immediately.
 Fraud Detection System`;
     }
 
-    async sendRealEmail(emailAddress = null, transactionData = null) {
-        if (!this.emailActive) {
-            this.showAlert('❌ Email service is currently offline', 'error');
-            return;
-        }
-
+       async sendRealEmail(emailAddress = null, transactionData = null) {
         const email = emailAddress || document.getElementById('emailTo').value;
         const transaction = transactionData || this.currentTransaction;
         const subject = document.getElementById('emailSubject')?.value || this.generateEmailSubject(transaction);
         const message = document.getElementById('emailMessage')?.value || this.generateEmailMessage(transaction);
-
+        
         if (!email || !subject || !message) {
-            this.showAlert('Email address, subject, and message are required', 'error');
+            this.showAlert('Email, subject and message are required', 'error');
             return;
         }
 
         try {
-            const sendBtn = document.getElementById('sendEmail');
-            if (sendBtn) {
-                sendBtn.disabled = true;
-                sendBtn.innerHTML = '<div class="loading-spinner"></div> Sending...';
-            }
+            const response = await fetch(`${CONFIG.backendUrl}/send-email`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    to_email: email,
+                    subject: subject,
+                    message: message,
+                    transaction_data: transaction
+                })
+            });
 
-            const templateParams = {
-                to_email: email,
-                subject: subject,
-                message: message,
-                transaction_id: transaction.id,
-                account_number: transaction.accNo,
-                amount: transaction.amount,
-                risk_score: transaction.riskScore
-            };
+            const result = await response.json();
 
-            const result = await emailjs.send(CONFIG.emailjs.serviceId, CONFIG.emailjs.templateId, templateParams);
-
-            if (result.status === 200) {
-                this.showAlert('✅ Email sent successfully!', 'success');
+            if (result.success) {
+                this.showAlert('✅ REAL Email sent successfully! Check your inbox.', 'success');
                 this.closeModal();
             } else {
-                throw new Error('Failed to send email');
+                throw new Error(result.error);
             }
 
         } catch (error) {
             console.error('Email error:', error);
-            this.showAlert('❌ Failed to send email: ' + error.message, 'error');
-        } finally {
-            const sendBtn = document.getElementById('sendEmail');
-            if (sendBtn) {
-                sendBtn.disabled = false;
-                sendBtn.innerHTML = 'Send Real Email';
-            }
+            this.showAlert('❌ Email failed: ' + error.message, 'error');
+            
+            // Fallback to direct EmailJS
+            this.showAlert('🔄 Trying direct EmailJS...', 'warning');
+            await this.sendDirectEmailJS(email, subject, message);
         }
     }
+
+    async sendDirectEmailJS(email, subject, message) {
+        try {
+            const templateParams = {
+                to_email: email,
+                subject: subject,
+                message: message,
+                from_name: 'Fraud Detection System',
+                timestamp: new Date().toLocaleString()
+            };
+
+            const result = await emailjs.send(
+                CONFIG.emailjs.serviceId,
+                CONFIG.emailjs.templateId,
+                templateParams
+            );
+
+            if (result.status === 200) {
+                this.showAlert('✅ Email sent via EmailJS!', 'success');
+            } else {
+                throw new Error('EmailJS failed');
+            }
+        } catch (error) {
+            this.showAlert('❌ All email methods failed', 'error');
+        }
+    }
+
+    async sendCombinedAlert(phone, email, transaction) {
+        try {
+            const smsMessage = this.generateSMSMessage(transaction);
+            const emailSubject = this.generateEmailSubject(transaction);
+            const emailMessage = this.generateEmailMessage(transaction);
+
+            const response = await fetch(`${CONFIG.backendUrl}/send-alert`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    phone: phone,
+                    email: email,
+                    transaction_data: transaction,
+                    sms_message: smsMessage,
+                    email_subject: emailSubject,
+                    email_message: emailMessage
+                })
+            });
+
+            const result = await response.json();
+            
+            if (result.success) {
+                let alertMessage = '🚨 Alerts sent: ';
+                if (result.results.sms?.success) alertMessage += 'SMS ✅ ';
+                if (result.results.email?.success) alertMessage += 'Email ✅';
+                this.showAlert(alertMessage, 'success');
+            }
+
+        } catch (error) {
+            console.error('Combined alert failed:', error);
+        }
+    }
+
+    generateEmailSubject(transaction) {
+        const riskLevel = transaction.riskScore >= 60 ? 'HIGH RISK' : transaction.riskScore >= 30 ? 'MEDIUM RISK' : 'LOW RISK';
+        return `🚨 Fraud Alert - ${riskLevel} - $${transaction.amount} - ${transaction.location}`;
+    }
+
+    generateEmailMessage(transaction) {
+        return `
+FRAUD DETECTION ALERT
+
+Transaction Details:
+- Account: ${transaction.accNo} - ${transaction.accountName}
+- Amount: $${transaction.amount.toLocaleString()}
+- Location: ${transaction.location}
+- Risk Score: ${transaction.riskScore}%
+- Time: ${transaction.timestamp}
+
+Security Alerts:
+${transaction.alerts.map(alert => `• ${alert}`).join('\n')}
+
+Remaining Balance: $${transaction.remainingBalance.toLocaleString()}
+
+This is an automated alert from the Fraud Detection System.
+Please verify this transaction immediately if suspicious.
+        `.trim();
+    }
+}
+
 
     closeModal() {
         document.querySelectorAll('.modal').forEach(modal => {
