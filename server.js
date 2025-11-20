@@ -19,7 +19,7 @@ const client = twilio(accountSid, authToken);
 // YOUR EMAILJS CREDENTIALS
 const emailjsConfig = {
     serviceId: 'service_akash',
-    templateId: 'template_akash', 
+    templateId: 'template_akash',
     publicKey: 'CaMVUkQYox6o96Q29',
     baseURL: 'https://api.emailjs.com/api/v1.0/email/send'
 };
@@ -121,12 +121,10 @@ app.post('/send-email', async (req, res) => {
             service_id: emailjsConfig.serviceId,
             template_id: emailjsConfig.templateId,
             user_id: emailjsConfig.publicKey,
-            template_params: templateParams,
-            accessToken: emailjsConfig.publicKey
+            template_params: templateParams
         }, {
             headers: {
-                'Content-Type': 'application/json',
-                'Origin': 'https://your-domain.com'
+                'Content-Type': 'application/json'
             }
         });
 
@@ -286,9 +284,25 @@ app.post('/test-email', async (req, res) => {
     }
 });
 
+// Simple test endpoint
+app.get('/test', (req, res) => {
+    res.json({ 
+        message: 'Backend is working!',
+        endpoints: {
+            'GET /health': 'Service health check',
+            'POST /send-sms': 'Send SMS alert',
+            'POST /send-email': 'Send email alert',
+            'POST /send-alert': 'Send both SMS & email',
+            'POST /test-sms': 'Test SMS functionality',
+            'POST /test-email': 'Test email functionality'
+        }
+    });
+});
+
 app.listen(PORT, () => {
     console.log(`🚀 Fraud Detection Service running on port ${PORT}`);
     console.log(`📱 SMS: ACTIVE (Twilio)`);
     console.log(`📧 EMAIL: ACTIVE (EmailJS)`);
     console.log(`✅ BOTH SERVICES READY FOR REAL ALERTS`);
+    console.log(`🌐 Health: http://localhost:${PORT}/health`);
 });
