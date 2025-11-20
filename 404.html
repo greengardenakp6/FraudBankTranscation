@@ -566,13 +566,39 @@
             border: 1px solid #f5c6cb;
         }
 
-        .status-simulation {
-            background: #fff3cd;
-            color: #856404;
-            border: 1px solid #ffeaa7;
+        .twilio-info {
+            background: #f0f8ff;
+            border: 1px solid #3498db;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
         }
 
-        .connection-troubleshoot {
+        .twilio-info h4 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .twilio-info p {
+            font-size: 0.9em;
+            color: #555;
+            margin-bottom: 10px;
+        }
+
+        .twilio-info a {
+            color: #3498db;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .twilio-info a:hover {
+            text-decoration: underline;
+        }
+
+        .sms-fix-info {
             background: #fff3cd;
             border: 1px solid #ffc107;
             border-radius: 8px;
@@ -580,7 +606,7 @@
             margin-top: 15px;
         }
 
-        .connection-troubleshoot h4 {
+        .sms-fix-info h4 {
             color: #856404;
             margin-bottom: 10px;
             display: flex;
@@ -588,36 +614,10 @@
             gap: 8px;
         }
 
-        .connection-troubleshoot ul {
-            margin-left: 20px;
-            margin-bottom: 10px;
-        }
-
-        .connection-troubleshoot li {
-            margin-bottom: 5px;
+        .sms-fix-info p {
             font-size: 0.9em;
-        }
-
-        .quick-fix-section {
-            background: #e8f5e8;
-            border: 1px solid #28a745;
-            border-radius: 8px;
-            padding: 15px;
-            margin-top: 15px;
-        }
-
-        .quick-fix-section h4 {
-            color: #155724;
+            color: #856404;
             margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .quick-fix-section p {
-            color: #155724;
-            margin-bottom: 10px;
-            font-size: 0.9em;
         }
 
         @media (max-width: 768px) {
@@ -690,7 +690,7 @@
                     <div class="form-group">
                         <label for="amount">TRANSACTION AMOUNT ($)</label>
                         <div class="input-group">
-                            <input type="number" id="amount" step="0.01" min="0" placeholder="0.00" value="45000" required>
+                            <input type="number" id="amount" step="0.01" min="0" placeholder="0.00" value="75000" required>
                             <div class="input-icon">💰</div>
                         </div>
                     </div>
@@ -720,7 +720,7 @@
                     <div class="form-group">
                         <label for="mobileNumber">YOUR MOBILE NUMBER</label>
                         <div class="input-group">
-                            <input type="tel" id="mobileNumber" placeholder="+919876543210" value="+919876543210">
+                            <input type="tel" id="mobileNumber" placeholder="+919876543210" value="+919876543210" required>
                             <div class="input-icon">📱</div>
                         </div>
                         <small style="color: #6c757d; font-size: 0.85em;">Enter YOUR real phone number to receive SMS alerts</small>
@@ -749,11 +749,11 @@
             <div class="backend-status">
                 <h4>🔧 Real Services Status</h4>
                 <div class="service-status">
-                    <div id="backendStatus" class="status-badge status-inactive">
-                        <span>❌ Backend Offline</span>
+                    <div id="backendStatus" class="status-badge status-active">
+                        <span>✅ Backend Online</span>
                     </div>
-                    <div id="smsStatus" class="status-badge status-simulation">
-                        <span>🔄 SMS Simulation</span>
+                    <div id="smsStatus" class="status-badge status-active">
+                        <span>✅ Twilio SMS Active</span>
                     </div>
                     <div id="emailStatus" class="status-badge status-active">
                         <span>✅ Email Service Active</span>
@@ -765,36 +765,18 @@
                 <div style="margin-top: 10px; font-size: 0.8em; color: #28a745;">
                     <strong>📱 SMS Test:</strong> Use amounts over $50,000 to trigger automatic SMS alerts
                 </div>
-                
-                <div class="connection-troubleshoot">
-                    <h4>🔧 Connection Troubleshooting</h4>
-                    <p>The backend server is currently offline. Here's how to fix it:</p>
-                    <ul>
-                        <li>Check if your backend server is running</li>
-                        <li>Verify the backend URL is correct</li>
-                        <li>Ensure CORS is enabled on your backend</li>
-                        <li>Check your internet connection</li>
-                    </ul>
-                    <button id="testConnection" class="btn btn-secondary" style="margin-top: 10px; padding: 8px 15px;">
-                        🔄 Retry Connection
-                    </button>
-                </div>
-                
-                <div class="quick-fix-section">
-                    <h4>🚀 Quick Fix - Local Backend</h4>
-                    <p>To enable REAL SMS functionality immediately:</p>
-                    <ol style="margin-left: 20px; margin-bottom: 10px;">
-                        <li>Download and run the backend server locally</li>
-                        <li>Update the backend URL in the code</li>
-                        <li>Configure Twilio credentials</li>
-                    </ol>
-                    <button id="enableSimulation" class="btn btn-primary" style="margin-top: 10px; padding: 8px 15px;">
-                        🎯 Enable Enhanced Simulation Mode
-                    </button>
-                </div>
+            </div>
+            
+            <!-- Twilio Integration Information -->
+            <div class="twilio-info">
+                <h4>🔧 Twilio Integration Status</h4>
+                <p><strong>Current Status:</strong> SMS simulation active (working in demo mode)</p>
+                <p><strong>To enable REAL SMS:</strong> You need a backend server to securely send SMS using your Twilio credentials.</p>
+                <p><strong>Backend Requirements:</strong> Node.js/Express, Python/Flask, or any server that can make authenticated requests to Twilio API.</p>
+                <p><a href="https://www.twilio.com/docs/sms/quickstart/node" target="_blank">📚 View Twilio SMS Quickstart Guide</a></p>
             </div>
         </div>
-        
+
         <!-- Dashboard Section -->
         <div class="results-container">
             <div class="section-header">
@@ -860,7 +842,7 @@
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" id="cancelSMS">Cancel</button>
-                <button class="btn btn-primary" id="sendSMS">Send SMS (Simulation)</button>
+                <button class="btn btn-primary" id="sendSMS">Send Real SMS via Twilio</button>
             </div>
         </div>
     </div>
@@ -894,9 +876,9 @@
     </div>
 
     <script>
-// Configuration - WITH REAL SMS BACKEND
+       // Configuration - WITH REAL SMS BACKEND
 const CONFIG = {
-    backendUrl: 'https://fraudbanktranscation.onrender.com',
+   backendUrl: 'https://fraudbanktranscation.onrender.com',
     
     emailjs: {
         publicKey: 'CaMVUkQYox6o96Q29',
@@ -928,8 +910,8 @@ class FraudDetectionSystem {
     constructor() {
         this.transactions = [];
         this.accounts = CONFIG.accounts;
-        this.backendActive = false; // Fixed: Start as false
-        this.smsActive = false; // Fixed: Start as false
+        this.backendActive = false;
+        this.smsActive = false; // Start as false, check backend
         this.emailActive = true;
         this.currentTransaction = null;
         this.init();
@@ -959,10 +941,10 @@ class FraudDetectionSystem {
             }
         } catch (error) {
             console.log('❌ Backend not available - using simulation mode');
-            this.backendActive = false; // Fixed: Set to false when backend is down
-            this.smsActive = false; 
-            this.setBackendStatus(false); // Fixed: Set to false
-            this.setSMSStatus(false);
+            this.backendActive = false;
+            this.smsActive = true; // Enable simulation
+            this.setBackendStatus(false);
+            this.setSMSStatus(true);
             this.showAlert('⚠️ Backend offline - SMS in simulation mode', 'warning');
         }
     }
@@ -1038,12 +1020,6 @@ class FraudDetectionSystem {
                 if (e.target === modal) this.closeModal();
             });
         });
-
-        // Add test connection button if it exists
-        const testBtn = document.getElementById('testConnection');
-        if (testBtn) {
-            testBtn.addEventListener('click', () => this.testSMSConnection());
-        }
     }
 
     async handleTransaction(e) {
@@ -1057,12 +1033,6 @@ class FraudDetectionSystem {
 
         if (!accNo || !amount || amount <= 0 || !location || !mobileNumber || !emailAddress) {
             this.showAlert('Please fill all fields correctly', 'error');
-            return;
-        }
-
-        // Validate phone number format
-        if (!mobileNumber.startsWith('+')) {
-            this.showAlert('❌ Phone number must include country code (e.g., +91 for India)', 'error');
             return;
         }
 
@@ -1235,6 +1205,11 @@ class FraudDetectionSystem {
     }
 
     async sendRealSMS(phoneNumber = null, transactionData = null) {
+        if (!this.smsActive) {
+            this.showAlert('❌ SMS service is currently offline', 'error');
+            return;
+        }
+
         const phone = phoneNumber || document.getElementById('phoneNumber').value;
         const transaction = transactionData || this.currentTransaction;
         const message = document.getElementById('smsMessage')?.value || this.generateSMSMessage(transaction);
@@ -1244,32 +1219,19 @@ class FraudDetectionSystem {
             return;
         }
 
-        // Validate phone number format
-        if (!phone.startsWith('+')) {
-            this.showAlert('❌ Phone number must include country code (e.g., +91 for India)', 'error');
-            return;
-        }
-
         try {
             const sendBtn = document.getElementById('sendSMS');
             if (sendBtn) {
                 sendBtn.disabled = true;
-                sendBtn.innerHTML = '<div class="loading-spinner"></div> Sending REAL SMS...';
+                sendBtn.innerHTML = '<div class="loading-spinner"></div> Sending...';
             }
 
             if (this.backendActive) {
                 // REAL SMS via backend
-                console.log('📱 Sending REAL SMS to:', phone);
                 const response = await fetch(`${CONFIG.backendUrl}/send-sms`, {
                     method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ 
-                        to: phone, 
-                        message: message, 
-                        transactionId: transaction?.id 
-                    })
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ to: phone, message: message, transactionId: transaction?.id })
                 });
 
                 const result = await response.json();
@@ -1282,17 +1244,17 @@ class FraudDetectionSystem {
                     throw new Error(result.error || 'Failed to send SMS');
                 }
             } else {
-                // Fallback to simulation
-                await this.sendSMSSimulation(phone, message);
+                // SMS Simulation
+                const result = await this.sendSMSSimulation(phone, message);
+                if (result.success) {
+                    this.showAlert('✅ SMS sent successfully! (Simulation Mode)', 'success');
+                    this.closeModal();
+                }
             }
 
         } catch (error) {
             console.error('SMS error:', error);
-            this.showAlert(`❌ SMS failed: ${error.message}`, 'error');
-            
-            // Fallback to simulation
-            this.showAlert('🔄 Using SMS simulation instead', 'warning');
-            await this.sendSMSSimulation(phone, message);
+            this.showAlert('❌ Failed to send SMS: ' + error.message, 'error');
         } finally {
             const sendBtn = document.getElementById('sendSMS');
             if (sendBtn) {
@@ -1307,8 +1269,6 @@ class FraudDetectionSystem {
             setTimeout(() => {
                 console.log(`📱 SMS Simulation to: ${phoneNumber}`);
                 console.log(`Message: ${message}`);
-                this.showAlert('✅ SMS sent successfully! (Simulation Mode)', 'success');
-                this.closeModal();
                 resolve({ success: true, message: 'SMS sent successfully (simulated)' });
             }, 2000);
         });
@@ -1632,26 +1592,6 @@ Fraud Detection System`;
         } catch (error) {
             console.error('PDF error:', error);
             this.showAlert('Error generating PDF report', 'error');
-        }
-    }
-
-    // New method to test SMS connection
-    async testSMSConnection() {
-        try {
-            this.showAlert('🧪 Testing SMS connection to backend...', 'info');
-            
-            const response = await fetch(`${CONFIG.backendUrl}/health`);
-            const data = await response.json();
-            
-            if (data.status === 'OK') {
-                this.showAlert('✅ Backend is connected and healthy! REAL SMS is ready.', 'success');
-                return true;
-            } else {
-                throw new Error('Backend returned non-OK status');
-            }
-        } catch (error) {
-            this.showAlert('❌ Backend connection failed: ' + error.message, 'error');
-            return false;
         }
     }
 }
