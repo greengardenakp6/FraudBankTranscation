@@ -690,7 +690,7 @@
                     <div class="form-group">
                         <label for="amount">TRANSACTION AMOUNT ($)</label>
                         <div class="input-group">
-                            <input type="number" id="amount" step="0.01" min="0" placeholder="0.00" value="75000" required>
+                            <input type="number" id="amount" step="0.01" min="0" placeholder="0.00" value="45000" required>
                             <div class="input-icon">💰</div>
                         </div>
                     </div>
@@ -720,7 +720,7 @@
                     <div class="form-group">
                         <label for="mobileNumber">YOUR MOBILE NUMBER</label>
                         <div class="input-group">
-                            <input type="tel" id="mobileNumber" placeholder="+919876543210" value="+919876543210" required>
+                            <input type="tel" id="mobileNumber" placeholder="+919876543210" >
                             <div class="input-icon">📱</div>
                         </div>
                         <small style="color: #6c757d; font-size: 0.85em;">Enter YOUR real phone number to receive SMS alerts</small>
@@ -767,16 +767,7 @@
                 </div>
             </div>
             
-            <!-- Twilio Integration Information -->
-            <div class="twilio-info">
-                <h4>🔧 Twilio Integration Status</h4>
-                <p><strong>Current Status:</strong> SMS simulation active (working in demo mode)</p>
-                <p><strong>To enable REAL SMS:</strong> You need a backend server to securely send SMS using your Twilio credentials.</p>
-                <p><strong>Backend Requirements:</strong> Node.js/Express, Python/Flask, or any server that can make authenticated requests to Twilio API.</p>
-                <p><a href="https://www.twilio.com/docs/sms/quickstart/node" target="_blank">📚 View Twilio SMS Quickstart Guide</a></p>
-            </div>
-        </div>
-
+            
         <!-- Dashboard Section -->
         <div class="results-container">
             <div class="section-header">
@@ -876,7 +867,7 @@
     </div>
 
     <script>
-// Configuration - WITH REAL SMS BACKEND
+   
 const CONFIG = {
     backendUrl: 'https://fraudbanktranscation.onrender.com',
     
@@ -1215,7 +1206,7 @@ class FraudDetectionSystem {
         const riskLevel = transaction.riskScore >= 60 ? 'HIGH RISK' : transaction.riskScore >= 30 ? 'MEDIUM RISK' : 'LOW RISK';
         return `🚨 FRAUD ALERT: Transaction $${transaction.amount.toLocaleString()} at ${transaction.location}. Risk: ${transaction.riskScore}% (${riskLevel}). Account: ${transaction.accNo}. Timestamp: ${transaction.timestamp}. Please verify immediately.`;
     }
-
+ 
     async sendRealSMS(phoneNumber = null, transactionData = null) {
         const phone = phoneNumber || document.getElementById('phoneNumber').value;
         const transaction = transactionData || this.currentTransaction;
@@ -1295,7 +1286,7 @@ class FraudDetectionSystem {
             }, 2000);
         });
     }
-
+  
     openEmailModal(transactionData) {
         this.currentTransaction = transactionData;
         const subject = this.generateEmailSubject(transactionData);
@@ -1617,7 +1608,6 @@ Fraud Detection System`;
         }
     }
 
-    // New method to test SMS connection
     async testSMSConnection() {
         try {
             this.showAlert('🧪 Testing SMS connection to backend...', 'info');
@@ -1638,7 +1628,7 @@ Fraud Detection System`;
     }
 }
 
-// Initialize system
+
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM loaded - Fraud Detection System Ready');
     window.fraudSystem = new FraudDetectionSystem();
