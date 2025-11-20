@@ -878,8 +878,7 @@ flex-direction: column;
     <script>
      
 const CONFIG = {
-  
-   backendUrl: 'https://fraudbanktranscation.onrender.com',
+    backendUrl: 'https://fraudbanktranscation.onrender.com',
     
     emailjs: {
         publicKey: 'CaMVUkQYox6o96Q29',
@@ -912,7 +911,7 @@ class FraudDetectionSystem {
         this.transactions = [];
         this.accounts = CONFIG.accounts;
         this.backendActive = false;
-        this.smsActive = false; // Start as false, check backend
+        this.smsActive = false;
         this.emailActive = true;
         this.currentTransaction = null;
         this.init();
@@ -937,16 +936,16 @@ class FraudDetectionSystem {
                 this.smsActive = true;
                 this.setBackendStatus(true);
                 this.setSMSStatus(true);
-                this.showAlert('✅ Backend Connected! REAL SMS is now active!', 'success');
+                this.showAlert('✅ Backend Connected! REAL SMS & Email active!', 'success');
                 console.log('✅ Backend is running - REAL SMS enabled');
             }
         } catch (error) {
             console.log('❌ Backend not available - using simulation mode');
             this.backendActive = false;
-            this.smsActive = true; // Enable simulation
+            this.smsActive = true;
             this.setBackendStatus(false);
             this.setSMSStatus(true);
-            this.showAlert('⚠️ Backend offline - SMS in simulation mode', 'warning');
+            this.showAlert('⚠️ Backend offline - Using simulation mode', 'warning');
         }
     }
 
@@ -1005,17 +1004,23 @@ class FraudDetectionSystem {
         document.getElementById('refreshStats').addEventListener('click', () => this.refreshStats());
         document.getElementById('clearHistory').addEventListener('click', () => this.clearHistory());
         document.getElementById('exportData').addEventListener('click', () => this.exportData());
+        
+        // Test buttons
+        const testSMSBtn = document.getElementById('testSMS');
+        const testEmailBtn = document.getElementById('testEmail');
+        if (testSMSBtn) testSMSBtn.addEventListener('click', () => this.testSMS());
+        if (testEmailBtn) testEmailBtn.addEventListener('click', () => this.testEmail());
 
         document.querySelectorAll('.close-modal').forEach(btn => {
             btn.addEventListener('click', () => this.closeModal());
         });
-
+        
         document.getElementById('cancelSMS').addEventListener('click', () => this.closeModal());
         document.getElementById('cancelEmail').addEventListener('click', () => this.closeModal());
-
+        
         document.getElementById('sendSMS').addEventListener('click', () => this.sendRealSMS());
         document.getElementById('sendEmail').addEventListener('click', () => this.sendRealEmail());
-
+        
         document.querySelectorAll('.modal').forEach(modal => {
             modal.addEventListener('click', (e) => {
                 if (e.target === modal) this.closeModal();
@@ -1094,7 +1099,7 @@ class FraudDetectionSystem {
             }, 1000);
         }
 
-        // Auto-send Email
+        // Auto-send Email for high risk
         if (fraudResult.riskScore >= CONFIG.thresholds.autoAlertThreshold && this.emailActive) {
             setTimeout(() => {
                 this.sendRealEmail(transaction.emailAddress, transaction);
@@ -1181,7 +1186,7 @@ class FraudDetectionSystem {
         resultsDiv.scrollIntoView({ behavior: 'smooth' });
 
         if (riskScore >= 60 && this.smsActive) {
-            this.showAlert(`🚨 High-risk transaction detected! ${this.backendActive ? 'REAL SMS sent!' : 'SMS simulation activated.'}`, 'warning');
+            this.showAlert(`🚨 High-risk transaction detected! ${this.backendActive ? 'REAL alerts sent!' : 'Simulation mode activated.'}`, 'warning');
         }
     }
 
@@ -1206,11 +1211,6 @@ class FraudDetectionSystem {
     }
 
     async sendRealSMS(phoneNumber = null, transactionData = null) {
-        if (!this.smsActive) {
-            this.showAlert('❌ SMS service is currently offline', 'error');
-            return;
-        }
-
         const phone = phoneNumber || document.getElementById('phoneNumber').value;
         const transaction = transactionData || this.currentTransaction;
         const message = document.getElementById('smsMessage')?.value || this.generateSMSMessage(transaction);
@@ -1232,7 +1232,11 @@ class FraudDetectionSystem {
                 const response = await fetch(`${CONFIG.backendUrl}/send-sms`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ to: phone, message: message, transactionId: transaction?.id })
+                    body: JSON.stringify({ 
+                        to: phone, 
+                        message: message, 
+                        transactionId: transaction?.id 
+                    })
                 });
 
                 const result = await response.json();
@@ -1246,16 +1250,22 @@ class FraudDetectionSystem {
                 }
             } else {
                 // SMS Simulation
-                const result = await this.sendSMSSimulation(phone, message);
-                if (result.success) {
-                    this.showAlert('✅ SMS sent successfully! (Simulation Mode)', 'success');
-                    this.closeModal();
-                }
+                await this.sendSMSSimulation(phone, message);
+                this.showAlert('✅ SMS sent successfully! (Simulation Mode)', 'success');
+                this.closeModal();
             }
 
         } catch (error) {
             console.error('SMS error:', error);
             this.showAlert('❌ Failed to send SMS: ' + error.message, 'error');
+            
+            // Fallback to simulation
+            if (!this.backendActive) {
+                this.showAlert('🔄 Using SMS simulation...', 'warning');
+                await this.sendSMSSimulation(phone, message);
+                this.showAlert('✅ SMS sent successfully! (Simulation Mode)', 'success');
+                this.closeModal();
+            }
         } finally {
             const sendBtn = document.getElementById('sendSMS');
             if (sendBtn) {
@@ -1302,18 +1312,21 @@ AMOUNT: $${transaction.amount.toLocaleString()}
 LOCATION: ${transaction.location}
 RISK SCORE: ${transaction.riskScore}% (${riskLevel})
 TIMESTAMP: ${transaction.timestamp}
+REMAINING BALANCE: $${transaction.remainingBalance.toLocaleString()}
 
-ALERTS:
+SECURITY ALERTS:
 ${transaction.alerts.map(alert => `• ${alert}`).join('\n')}
 
-SMS Alert: ${this.smsActive ? 'Sent to customer' : 'Not sent'}
+SMS Alert: ${this.smsActive ? (this.backendActive ? 'REAL SMS Sent' : 'Simulation Sent') : 'Not sent'}
 
-Please review immediately.
+This is an automated alert from the Fraud Detection System.
+Please review this transaction immediately if suspicious.
 
+Best regards,
 Fraud Detection System`;
     }
 
-       async sendRealEmail(emailAddress = null, transactionData = null) {
+    async sendRealEmail(emailAddress = null, transactionData = null) {
         const email = emailAddress || document.getElementById('emailTo').value;
         const transaction = transactionData || this.currentTransaction;
         const subject = document.getElementById('emailSubject')?.value || this.generateEmailSubject(transaction);
@@ -1325,33 +1338,60 @@ Fraud Detection System`;
         }
 
         try {
-            const response = await fetch(`${CONFIG.backendUrl}/send-email`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    to_email: email,
-                    subject: subject,
-                    message: message,
-                    transaction_data: transaction
-                })
-            });
-
-            const result = await response.json();
-
-            if (result.success) {
-                this.showAlert('✅ REAL Email sent successfully! Check your inbox.', 'success');
-                this.closeModal();
-            } else {
-                throw new Error(result.error);
+            const sendBtn = document.getElementById('sendEmail');
+            if (sendBtn) {
+                sendBtn.disabled = true;
+                sendBtn.innerHTML = '<div class="loading-spinner"></div> Sending...';
             }
+
+            // Try backend first
+            if (this.backendActive) {
+                try {
+                    const response = await fetch(`${CONFIG.backendUrl}/send-email`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            to_email: email,
+                            subject: subject,
+                            message: message,
+                            transaction_data: transaction
+                        })
+                    });
+
+                    // If endpoint doesn't exist, use direct EmailJS
+                    if (response.status === 404) {
+                        throw new Error('Email endpoint not found');
+                    }
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        this.showAlert('✅ REAL Email sent successfully! Check your inbox.', 'success');
+                        this.closeModal();
+                        return;
+                    } else {
+                        throw new Error(result.error);
+                    }
+                } catch (backendError) {
+                    console.log('Backend email failed, using direct EmailJS:', backendError);
+                    // Continue to direct EmailJS
+                }
+            }
+
+            // Use direct EmailJS
+            await this.sendDirectEmailJS(email, subject, message);
+            this.showAlert('✅ Email sent successfully via EmailJS!', 'success');
+            this.closeModal();
 
         } catch (error) {
             console.error('Email error:', error);
-            this.showAlert('❌ Email failed: ' + error.message, 'error');
-            
-            // Fallback to direct EmailJS
-            this.showAlert('🔄 Trying direct EmailJS...', 'warning');
-            await this.sendDirectEmailJS(email, subject, message);
+            this.showAlert('❌ Failed to send email: ' + error.message, 'error');
+        } finally {
+            const sendBtn = document.getElementById('sendEmail');
+            if (sendBtn) {
+                sendBtn.disabled = false;
+                sendBtn.innerHTML = 'Send Real Email';
+            }
         }
     }
 
@@ -1371,13 +1411,14 @@ Fraud Detection System`;
                 templateParams
             );
 
-            if (result.status === 200) {
-                this.showAlert('✅ Email sent via EmailJS!', 'success');
-            } else {
-                throw new Error('EmailJS failed');
+            if (result.status !== 200) {
+                throw new Error('EmailJS failed with status: ' + result.status);
             }
+
+            return result;
         } catch (error) {
-            this.showAlert('❌ All email methods failed', 'error');
+            console.error('EmailJS error:', error);
+            throw new Error('EmailJS failed: ' + error.message);
         }
     }
 
@@ -1387,26 +1428,37 @@ Fraud Detection System`;
             const emailSubject = this.generateEmailSubject(transaction);
             const emailMessage = this.generateEmailMessage(transaction);
 
-            const response = await fetch(`${CONFIG.backendUrl}/send-alert`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    phone: phone,
-                    email: email,
-                    transaction_data: transaction,
-                    sms_message: smsMessage,
-                    email_subject: emailSubject,
-                    email_message: emailMessage
-                })
-            });
+            if (this.backendActive) {
+                const response = await fetch(`${CONFIG.backendUrl}/send-alert`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        phone: phone,
+                        email: email,
+                        transaction_data: transaction,
+                        sms_message: smsMessage,
+                        email_subject: emailSubject,
+                        email_message: emailMessage
+                    })
+                });
 
-            const result = await response.json();
-            
-            if (result.success) {
-                let alertMessage = '🚨 Alerts sent: ';
-                if (result.results.sms?.success) alertMessage += 'SMS ✅ ';
-                if (result.results.email?.success) alertMessage += 'Email ✅';
-                this.showAlert(alertMessage, 'success');
+                const result = await response.json();
+                
+                if (result.success) {
+                    let alertMessage = '🚨 Alerts sent: ';
+                    if (result.results.sms?.success) alertMessage += 'SMS ✅ ';
+                    if (result.results.email?.success) alertMessage += 'Email ✅';
+                    this.showAlert(alertMessage, 'success');
+                }
+            } else {
+                // Send separately in simulation mode
+                if (this.smsActive) {
+                    await this.sendSMSSimulation(phone, smsMessage);
+                }
+                if (this.emailActive) {
+                    await this.sendDirectEmailJS(email, emailSubject, emailMessage);
+                }
+                this.showAlert('🚨 Simulation alerts sent!', 'success');
             }
 
         } catch (error) {
@@ -1414,33 +1466,76 @@ Fraud Detection System`;
         }
     }
 
-    generateEmailSubject(transaction) {
-        const riskLevel = transaction.riskScore >= 60 ? 'HIGH RISK' : transaction.riskScore >= 30 ? 'MEDIUM RISK' : 'LOW RISK';
-        return `🚨 Fraud Alert - ${riskLevel} - $${transaction.amount} - ${transaction.location}`;
+    // Test functions
+    async testSMS() {
+        const mobileNumber = document.getElementById('mobileNumber').value;
+        if (!mobileNumber) {
+            this.showAlert('Please enter a phone number first', 'error');
+            return;
+        }
+
+        try {
+            this.showAlert('🧪 Testing SMS service...', 'info');
+            
+            if (this.backendActive) {
+                const response = await fetch(`${CONFIG.backendUrl}/test-sms`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ to: mobileNumber })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    this.showAlert('✅ REAL SMS Test sent! Check your phone.', 'success');
+                } else {
+                    throw new Error(result.error);
+                }
+            } else {
+                await this.sendSMSSimulation(mobileNumber, '🧪 TEST: Fraud Detection SMS System');
+                this.showAlert('✅ SMS Test completed (Simulation Mode)', 'success');
+            }
+        } catch (error) {
+            this.showAlert('❌ SMS Test failed: ' + error.message, 'error');
+        }
     }
 
-    generateEmailMessage(transaction) {
-        return `
-FRAUD DETECTION ALERT
+    async testEmail() {
+        const emailAddress = document.getElementById('emailAddress').value;
+        if (!emailAddress) {
+            this.showAlert('Please enter an email address first', 'error');
+            return;
+        }
 
-Transaction Details:
-- Account: ${transaction.accNo} - ${transaction.accountName}
-- Amount: $${transaction.amount.toLocaleString()}
-- Location: ${transaction.location}
-- Risk Score: ${transaction.riskScore}%
-- Time: ${transaction.timestamp}
+        try {
+            this.showAlert('🧪 Testing Email service...', 'info');
+            
+            if (this.backendActive) {
+                const response = await fetch(`${CONFIG.backendUrl}/test-email`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ to_email: emailAddress })
+                });
 
-Security Alerts:
-${transaction.alerts.map(alert => `• ${alert}`).join('\n')}
-
-Remaining Balance: $${transaction.remainingBalance.toLocaleString()}
-
-This is an automated alert from the Fraud Detection System.
-Please verify this transaction immediately if suspicious.
-        `.trim();
+                const result = await response.json();
+                
+                if (result.success) {
+                    this.showAlert('✅ REAL Email Test sent! Check your inbox.', 'success');
+                } else {
+                    throw new Error(result.error);
+                }
+            } else {
+                await this.sendDirectEmailJS(
+                    emailAddress, 
+                    '🧪 TEST: Fraud Detection Email System',
+                    'This is a test email from the Fraud Detection System.\n\nSystem Status: OPERATIONAL\nTime: ' + new Date().toLocaleString()
+                );
+                this.showAlert('✅ Email Test completed!', 'success');
+            }
+        } catch (error) {
+            this.showAlert('❌ Email Test failed: ' + error.message, 'error');
+        }
     }
-}
-
 
     closeModal() {
         document.querySelectorAll('.modal').forEach(modal => {
@@ -1671,7 +1766,6 @@ Please verify this transaction immediately if suspicious.
         }
     }
 }
-
 
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM loaded - Fraud Detection System Ready');
