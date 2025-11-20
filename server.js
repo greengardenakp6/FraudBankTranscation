@@ -1,7 +1,6 @@
 const express = require('express');
 const twilio = require('twilio');
 const cors = require('cors');
-require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -10,10 +9,10 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// Twilio Configuration - REPLACE WITH YOUR ACTUAL CREDENTIALS
-const accountSid = process.env.TWILIO_ACCOUNT_SID || 'ACf60f450f29fabf5d4dd01680f2052f48';
-const authToken = process.env.TWILIO_AUTH_TOKEN || '614f4f07bfff3587434f76ae4be21d25';
-const twilioPhone = process.env.TWILIO_PHONE_NUMBER || '+1234567890';
+// YOUR ACTUAL TWILIO CREDENTIALS
+const accountSid = 'ACf60f450f29fabf5d4dd01680f2052f48';
+const authToken = '23e740f40d9a83da528c411d10133e4f';
+const twilioPhone = '+14787395985';
 
 const client = twilio(accountSid, authToken);
 
@@ -21,18 +20,18 @@ const client = twilio(accountSid, authToken);
 app.get('/health', (req, res) => {
     res.json({ 
         status: 'OK', 
-        message: 'Fraud Detection SMS Service is running',
+        message: 'Fraud Detection SMS Service is RUNNING with REAL Twilio',
         timestamp: new Date().toISOString(),
-        twilio: accountSid ? 'Configured' : 'Not configured'
+        twilio: 'ACTIVE - REAL SMS ENABLED'
     });
 });
 
-// SMS endpoint
+// REAL SMS endpoint
 app.post('/send-sms', async (req, res) => {
     try {
         const { to, message, transactionId } = req.body;
 
-        console.log('📱 Received SMS request:', { to, message, transactionId });
+        console.log('📱 REAL SMS Request:', { to, message });
 
         if (!to || !message) {
             return res.status(400).json({
@@ -49,39 +48,42 @@ app.post('/send-sms', async (req, res) => {
             });
         }
 
-        console.log(`📱 Sending SMS to: ${to}`);
+        console.log(`📱 Sending REAL SMS to: ${to}`);
         console.log(`Message: ${message}`);
 
-        // Send SMS via Twilio
+        // Send REAL SMS via Twilio
         const twilioResponse = await client.messages.create({
             body: message,
             from: twilioPhone,
             to: to
         });
 
-        console.log('✅ SMS sent successfully:', twilioResponse.sid);
+        console.log('✅ REAL SMS sent successfully:', twilioResponse.sid);
+        console.log('✅ Message status:', twilioResponse.status);
 
         res.json({
             success: true,
-            message: 'SMS sent successfully',
+            message: 'REAL SMS sent successfully! Check your phone.',
             sid: twilioResponse.sid,
+            status: twilioResponse.status,
             to: to,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            from: twilioPhone
         });
 
     } catch (error) {
-        console.error('❌ SMS error:', error);
+        console.error('❌ REAL SMS failed:', error);
         
         res.status(500).json({
             success: false,
             error: error.message,
             code: error.code,
-            message: 'Failed to send SMS. Please check Twilio credentials.'
+            details: 'Check your Twilio credentials and phone number format'
         });
     }
 });
 
-// Test endpoint
+// Test SMS endpoint
 app.post('/test-sms', async (req, res) => {
     try {
         const { to } = req.body;
@@ -93,9 +95,9 @@ app.post('/test-sms', async (req, res) => {
             });
         }
 
-        const testMessage = `🚨 TEST: Fraud Detection System is working! Time: ${new Date().toLocaleString()}`;
+        const testMessage = `🚨 REAL SMS TEST: Fraud Detection System is WORKING! Time: ${new Date().toLocaleString()}`;
         
-        console.log(`🧪 Sending test SMS to: ${to}`);
+        console.log(`🧪 Sending REAL test SMS to: ${to}`);
         
         const twilioResponse = await client.messages.create({
             body: testMessage,
@@ -105,9 +107,11 @@ app.post('/test-sms', async (req, res) => {
 
         res.json({
             success: true,
-            message: 'Test SMS sent successfully',
+            message: 'REAL Test SMS sent successfully! Check your phone.',
             sid: twilioResponse.sid,
-            to: to
+            status: twilioResponse.status,
+            to: to,
+            from: twilioPhone
         });
 
     } catch (error) {
@@ -121,7 +125,9 @@ app.post('/test-sms', async (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`🚀 Fraud Detection SMS Service running on port ${PORT}`);
-    console.log(`📱 Health check: http://localhost:${PORT}/health`);
-    console.log(`📱 Twilio Status: ${accountSid ? 'Configured' : 'NOT CONFIGURED - SMS will fail'}`);
+    console.log(`🚀 REAL SMS Backend running on port ${PORT}`);
+    console.log(`📱 Twilio Account: ${accountSid}`);
+    console.log(`📱 Twilio Phone: ${twilioPhone}`);
+    console.log(`✅ REAL SMS SERVICE ACTIVE`);
+    console.log(`🌐 Health: http://localhost:${PORT}/health`);
 });
