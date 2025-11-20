@@ -870,12 +870,7 @@
    
 const CONFIG = {
     backendUrl: 'https://fraudbanktranscation.onrender.com',
-    endpoints: {
-        health: '/health',
-        sendSMS: '/send-sms',
-        sendEmail: '/send-email',
-        sendAlerts: '/send-alerts'
-    },
+    
     emailjs: {
         publicKey: 'CaMVUkQYox6o96Q29',
         serviceId: 'service_akash',
@@ -906,9 +901,9 @@ class FraudDetectionSystem {
     constructor() {
         this.transactions = [];
         this.accounts = CONFIG.accounts;
-        this.backendActive = false;
-        this.smsActive = false;
-        this.emailActive = false;
+        this.backendActive = false; // Fixed: Start as false
+        this.smsActive = false; // Fixed: Start as false
+        this.emailActive = true;
         this.currentTransaction = null;
         this.init();
     }
@@ -937,9 +932,9 @@ class FraudDetectionSystem {
             }
         } catch (error) {
             console.log('❌ Backend not available - using simulation mode');
-            this.backendActive = false;
+            this.backendActive = false; // Fixed: Set to false when backend is down
             this.smsActive = false; 
-            this.setBackendStatus(false);
+            this.setBackendStatus(false); // Fixed: Set to false
             this.setSMSStatus(false);
             this.showAlert('⚠️ Backend offline - SMS in simulation mode', 'warning');
         }
@@ -948,15 +943,12 @@ class FraudDetectionSystem {
     async initializeEmailJS() {
         try {
             if (typeof emailjs !== 'undefined') {
-                await emailjs.init(CONFIG.emailjs.publicKey);
+                emailjs.init(CONFIG.emailjs.publicKey);
                 console.log('✅ EmailJS initialized successfully');
                 this.setEmailStatus(true);
-            } else {
-                console.log('❌ EmailJS not loaded');
-                this.setEmailStatus(false);
             }
         } catch (error) {
-            console.error('❌ EmailJS initialization failed:', error);
+            console.error('❌ EmailJS failed:', error);
             this.setEmailStatus(false);
         }
     }
@@ -997,17 +989,13 @@ class FraudDetectionSystem {
     }
 
     setupEventListeners() {
-        // Form submission
         document.getElementById('transactionForm').addEventListener('submit', (e) => this.handleTransaction(e));
-        
-        // Button click events
         document.getElementById('quickScan').addEventListener('click', () => this.quickSecurityScan());
         document.getElementById('exportReport').addEventListener('click', () => this.exportReport());
         document.getElementById('refreshStats').addEventListener('click', () => this.refreshStats());
         document.getElementById('clearHistory').addEventListener('click', () => this.clearHistory());
         document.getElementById('exportData').addEventListener('click', () => this.exportData());
         
-        // Modal events
         document.querySelectorAll('.close-modal').forEach(btn => {
             btn.addEventListener('click', () => this.closeModal());
         });
@@ -1018,12 +1006,17 @@ class FraudDetectionSystem {
         document.getElementById('sendSMS').addEventListener('click', () => this.sendRealSMS());
         document.getElementById('sendEmail').addEventListener('click', () => this.sendRealEmail());
         
-        // Close modal when clicking outside
         document.querySelectorAll('.modal').forEach(modal => {
             modal.addEventListener('click', (e) => {
                 if (e.target === modal) this.closeModal();
             });
         });
+
+        // Add test connection button if it exists
+        const testBtn = document.getElementById('testConnection');
+        if (testBtn) {
+            testBtn.addEventListener('click', () => this.testSMSConnection());
+        }
     }
 
     async handleTransaction(e) {
@@ -1035,12 +1028,12 @@ class FraudDetectionSystem {
         const mobileNumber = document.getElementById('mobileNumber').value;
         const emailAddress = document.getElementById('emailAddress').value;
 
-        // Validation
         if (!accNo || !amount || amount <= 0 || !location || !mobileNumber || !emailAddress) {
             this.showAlert('Please fill all fields correctly', 'error');
             return;
         }
 
+        // Validate phone number format
         if (!mobileNumber.startsWith('+')) {
             this.showAlert('❌ Phone number must include country code (e.g., +91 for India)', 'error');
             return;
@@ -1096,82 +1089,60 @@ class FraudDetectionSystem {
         this.saveToLocalStorage();
         this.currentTransaction = transaction;
 
-        // Auto-send alerts for high risk
-        if (fraudResult.riskScore >= CONFIG.thresholds.autoAlertThreshold) {
-            if (this.smsActive) {
-                setTimeout(() => {
-                    this.sendRealSMS(transaction.mobileNumber, transaction);
-                }, 1000);
-            }
-            
-            if (this.emailActive) {
-                setTimeout(() => {
-                    this.sendRealEmail(transaction.emailAddress, transaction);
-                }, 1500);
-            }
+        // AUTO-SEND SMS for high risk
+        if (fraudResult.riskScore >= CONFIG.thresholds.autoAlertThreshold && this.smsActive) {
+            setTimeout(() => {
+                this.sendRealSMS(transaction.mobileNumber, transaction);
+            }, 1000);
         }
 
-        return { 
-            success: true, 
-            transaction: transaction, 
-            remainingBalance: account.balance 
-        };
+        // Auto-send Email
+        if (fraudResult.riskScore >= CONFIG.thresholds.autoAlertThreshold && this.emailActive) {
+            setTimeout(() => {
+                this.sendRealEmail(transaction.emailAddress, transaction);
+            }, 1500);
+        }
+
+        return { success: true, transaction: transaction, remainingBalance: account.balance };
     }
 
     detectFraud(transaction) {
         const alerts = [];
         let riskScore = 0;
 
-        // High value checks
         if (transaction.amount > CONFIG.thresholds.veryHighValue) {
-            alerts.push("Very high-value transaction"); 
-            riskScore += 50;
+            alerts.push("Very high-value transaction"); riskScore += 50;
         } else if (transaction.amount > CONFIG.thresholds.highValue) {
-            alerts.push("High-value transaction"); 
-            riskScore += 25;
+            alerts.push("High-value transaction"); riskScore += 25;
         }
 
-        // Rapid transactions check
         const fiveMinutesAgo = Date.now() - (CONFIG.thresholds.rapidTransactionMinutes * 60 * 1000);
         const recentTransactions = this.transactions.filter(t => 
             t.accNo === transaction.accNo && new Date(t.timestamp).getTime() > fiveMinutesAgo
         );
 
         if (recentTransactions.length >= CONFIG.thresholds.rapidTransactionCount) {
-            alerts.push("Multiple rapid transactions detected"); 
-            riskScore += 30;
+            alerts.push("Multiple rapid transactions detected"); riskScore += 30;
         }
 
-        // Location change check
         const lastTransaction = this.transactions.find(t => t.accNo === transaction.accNo);
         if (lastTransaction && lastTransaction.location !== transaction.location) {
             const farLocations = (lastTransaction.location === "Tokyo" && transaction.location === "New York") ||
                                (lastTransaction.location === "London" && transaction.location === "Sydney");
             if (farLocations) {
-                alerts.push("Impossible travel detected"); 
-                riskScore += 40;
+                alerts.push("Impossible travel detected"); riskScore += 40;
             } else {
-                alerts.push("Location change detected"); 
-                riskScore += 10;
+                alerts.push("Location change detected"); riskScore += 10;
             }
         }
 
-        // Round amount check
         if (transaction.amount % 1000 === 0 && transaction.amount > 1000) {
-            alerts.push("Round amount transaction"); 
-            riskScore += 5;
+            alerts.push("Round amount transaction"); riskScore += 5;
         }
 
-        // Default alert if no issues found
-        if (alerts.length === 0) {
-            alerts.push("No fraud detected");
-        }
+        if (alerts.length === 0) alerts.push("No fraud detected");
 
-        return { 
-            alerts: alerts, 
-            riskScore: Math.min(riskScore, 100), 
-            isSuspicious: riskScore > 20 
-        };
+        return { alerts: alerts, riskScore: Math.min(riskScore, 100), isSuspicious: riskScore > 20 };
     }
 
     displayResults(result) {
@@ -1205,10 +1176,7 @@ class FraudDetectionSystem {
 
         result.transaction.alerts.forEach(alert => {
             const isWarning = !alert.includes("No fraud detected");
-            const alertClass = isWarning ? 'alert-warning' : 'alert-info';
-            const icon = isWarning ? '⚠️' : '✅';
-            
-            html += `<div class="alert ${alertClass}">${icon} ${alert}</div>`;
+            html += `<div class="alert ${isWarning ? 'alert-warning' : 'alert-info'}">${isWarning ? '⚠' : '✅'} ${alert}</div>`;
         });
 
         resultsDiv.innerHTML = html;
@@ -1235,11 +1203,10 @@ class FraudDetectionSystem {
     }
 
     generateSMSMessage(transaction) {
-        const riskLevel = transaction.riskScore >= 60 ? 'HIGH RISK' : 
-                         transaction.riskScore >= 30 ? 'MEDIUM RISK' : 'LOW RISK';
+        const riskLevel = transaction.riskScore >= 60 ? 'HIGH RISK' : transaction.riskScore >= 30 ? 'MEDIUM RISK' : 'LOW RISK';
         return `🚨 FRAUD ALERT: Transaction $${transaction.amount.toLocaleString()} at ${transaction.location}. Risk: ${transaction.riskScore}% (${riskLevel}). Account: ${transaction.accNo}. Timestamp: ${transaction.timestamp}. Please verify immediately.`;
     }
-
+ 
     async sendRealSMS(phoneNumber = null, transactionData = null) {
         const phone = phoneNumber || document.getElementById('phoneNumber').value;
         const transaction = transactionData || this.currentTransaction;
@@ -1250,6 +1217,7 @@ class FraudDetectionSystem {
             return;
         }
 
+        // Validate phone number format
         if (!phone.startsWith('+')) {
             this.showAlert('❌ Phone number must include country code (e.g., +91 for India)', 'error');
             return;
@@ -1259,7 +1227,7 @@ class FraudDetectionSystem {
             const sendBtn = document.getElementById('sendSMS');
             if (sendBtn) {
                 sendBtn.disabled = true;
-                sendBtn.innerHTML = '<div class="loading-spinner"></div> Sending...';
+                sendBtn.innerHTML = '<div class="loading-spinner"></div> Sending REAL SMS...';
             }
 
             if (this.backendActive) {
@@ -1318,7 +1286,7 @@ class FraudDetectionSystem {
             }, 2000);
         });
     }
-
+  
     openEmailModal(transactionData) {
         this.currentTransaction = transactionData;
         const subject = this.generateEmailSubject(transactionData);
@@ -1331,14 +1299,12 @@ class FraudDetectionSystem {
     }
 
     generateEmailSubject(transaction) {
-        const riskLevel = transaction.riskScore >= 60 ? 'HIGH RISK' : 
-                         transaction.riskScore >= 30 ? 'MEDIUM RISK' : 'LOW RISK';
+        const riskLevel = transaction.riskScore >= 60 ? 'HIGH RISK' : transaction.riskScore >= 30 ? 'MEDIUM RISK' : 'LOW RISK';
         return `🚨 Fraud Detection Alert - ${riskLevel} - Transaction $${transaction.amount.toLocaleString()}`;
     }
 
     generateEmailMessage(transaction) {
-        const riskLevel = transaction.riskScore >= 60 ? 'HIGH RISK' : 
-                         transaction.riskScore >= 30 ? 'MEDIUM RISK' : 'LOW RISK';
+        const riskLevel = transaction.riskScore >= 60 ? 'HIGH RISK' : transaction.riskScore >= 30 ? 'MEDIUM RISK' : 'LOW RISK';
         return `Dear Security Team,
 
 We have detected a ${riskLevel.toLowerCase()} transaction:
@@ -1359,95 +1325,122 @@ Please review immediately.
 Fraud Detection System`;
     }
 
+
+
     async sendRealEmail(emailAddress = null, transactionData = null) {
-        if (!this.emailActive) {
-            this.showAlert('❌ Email service is currently offline', 'error');
-            return;
+    if (!this.emailActive) {
+        this.showAlert('❌ Email service is currently offline', 'error');
+        return;
+    }
+
+    const email = emailAddress || document.getElementById('emailTo').value;
+    const transaction = transactionData || this.currentTransaction;
+    const subject = document.getElementById('emailSubject')?.value || this.generateEmailSubject(transaction);
+    const message = document.getElementById('emailMessage')?.value || this.generateEmailMessage(transaction);
+    
+    if (!email || !subject || !message) {
+        this.showAlert('Email address, subject, and message are required', 'error');
+        return;
+    }
+
+    try {
+        const sendBtn = document.getElementById('sendEmail');
+        if (sendBtn) {
+            sendBtn.disabled = true;
+            sendBtn.innerHTML = '<div class="loading-spinner"></div> Sending...';
         }
 
-        const email = emailAddress || document.getElementById('emailTo').value;
-        const transaction = transactionData || this.currentTransaction;
-        const subject = document.getElementById('emailSubject')?.value || this.generateEmailSubject(transaction);
-        const message = document.getElementById('emailMessage')?.value || this.generateEmailMessage(transaction);
-        
-        if (!email || !subject || !message) {
-            this.showAlert('Email address, subject, and message are required', 'error');
-            return;
-        }
+        console.log('📧 Attempting to send email to:', email);
 
-        try {
-            const sendBtn = document.getElementById('sendEmail');
-            if (sendBtn) {
-                sendBtn.disabled = true;
-                sendBtn.innerHTML = '<div class="loading-spinner"></div> Sending...';
+        // Method 1: Using EmailJS (Frontend)
+        if (typeof emailjs !== 'undefined') {
+            const templateParams = {
+                to_email: email,
+                subject: subject,
+                message: message,
+                transaction_id: transaction?.id || 'N/A',
+                account_number: transaction?.accNo || 'N/A',
+                amount: transaction?.amount ? `$${transaction.amount.toLocaleString()}` : 'N/A',
+                risk_score: transaction?.riskScore ? `${transaction.riskScore}%` : 'N/A',
+                location: transaction?.location || 'N/A',
+                timestamp: transaction?.timestamp || new Date().toLocaleString()
+            };
+
+            console.log('📧 Sending via EmailJS with params:', templateParams);
+
+            const result = await emailjs.send(
+                CONFIG.emailjs.serviceId,
+                CONFIG.emailjs.templateId,
+                templateParams
+            );
+
+            if (result.status === 200) {
+                this.showAlert('✅ Email sent successfully via EmailJS!', 'success');
+                this.closeModal();
+                console.log('📧 Email sent successfully:', result);
+            } else {
+                throw new Error('EmailJS returned non-200 status');
             }
-
-            console.log('📧 Attempting to send email to:', email);
-
-            // Method 1: Using EmailJS (Frontend)
-            if (typeof emailjs !== 'undefined') {
-                const templateParams = {
-                    to_email: email,
+        } 
+        // Method 2: Using Backend Email Service
+        else if (this.backendActive) {
+            const response = await fetch(`${CONFIG.backendUrl}/send-email`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    to: email,
                     subject: subject,
                     message: message,
-                    transaction_id: transaction?.id || 'N/A',
-                    account_number: transaction?.accNo || 'N/A',
-                    amount: transaction?.amount ? `$${transaction.amount.toLocaleString()}` : 'N/A',
-                    risk_score: transaction?.riskScore ? `${transaction.riskScore}%` : 'N/A',
-                    location: transaction?.location || 'N/A',
-                    timestamp: transaction?.timestamp || new Date().toLocaleString()
-                };
+                    transactionData: transaction
+                })
+            });
 
-                console.log('📧 Sending via EmailJS with params:', templateParams);
+            const result = await response.json();
 
-                const result = await emailjs.send(
-                    CONFIG.emailjs.serviceId,
-                    CONFIG.emailjs.templateId,
-                    templateParams
-                );
-
-                if (result.status === 200) {
-                    this.showAlert('✅ Email sent successfully via EmailJS!', 'success');
-                    this.closeModal();
-                    console.log('📧 Email sent successfully:', result);
-                } else {
-                    throw new Error('EmailJS returned non-200 status');
-                }
-            } 
-            // Method 2: Fallback simulation
-            else {
-                await this.sendEmailSimulation(email, subject, message);
+            if (result.success) {
+                this.showAlert('✅ Email sent successfully via backend!', 'success');
+                this.closeModal();
+                console.log('📧 Email sent via backend:', result);
+            } else {
+                throw new Error(result.error || 'Failed to send email via backend');
             }
-
-        } catch (error) {
-            console.error('❌ Email sending failed:', error);
-            
-            // Fallback to simulation
-            this.showAlert('🔄 Email service failed, using simulation', 'warning');
+        } 
+        // Method 3: Fallback simulation
+        else {
             await this.sendEmailSimulation(email, subject, message);
-        } finally {
-            const sendBtn = document.getElementById('sendEmail');
-            if (sendBtn) {
-                sendBtn.disabled = false;
-                sendBtn.innerHTML = 'Send Real Email';
-            }
+        }
+
+    } catch (error) {
+        console.error('❌ Email sending failed:', error);
+        
+        // Fallback to simulation
+        this.showAlert('🔄 Email service failed, using simulation', 'warning');
+        await this.sendEmailSimulation(email, subject, message);
+    } finally {
+        const sendBtn = document.getElementById('sendEmail');
+        if (sendBtn) {
+            sendBtn.disabled = false;
+            sendBtn.innerHTML = 'Send Real Email';
         }
     }
+}
 
-    async sendEmailSimulation(email, subject, message) {
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                console.log('📧 Email Simulation:');
-                console.log('To:', email);
-                console.log('Subject:', subject);
-                console.log('Message:', message);
-                this.showAlert('✅ Email sent successfully! (Simulation Mode)', 'success');
-                this.closeModal();
-                resolve({ success: true, message: 'Email sent (simulated)' });
-            }, 2000);
-        });
-    }
-
+// Email simulation fallback
+async sendEmailSimulation(email, subject, message) {
+    return new Promise((resolve) => {
+        setTimeout(() => {
+            console.log('📧 Email Simulation:');
+            console.log('To:', email);
+            console.log('Subject:', subject);
+            console.log('Message:', message);
+            this.showAlert('✅ Email sent successfully! (Simulation Mode)', 'success');
+            this.closeModal();
+            resolve({ success: true, message: 'Email sent (simulated)' });
+        }, 2000);
+    });
+}
     closeModal() {
         document.querySelectorAll('.modal').forEach(modal => {
             modal.style.display = 'none';
@@ -1456,13 +1449,7 @@ Fraud Detection System`;
 
     loadTransactionHistory() {
         const saved = localStorage.getItem('fraudTransactions');
-        if (saved) {
-            try {
-                this.transactions = JSON.parse(saved);
-            } catch (e) {
-                this.transactions = [];
-            }
-        }
+        if (saved) this.transactions = JSON.parse(saved);
         this.displayTransactionHistory();
     }
 
@@ -1581,7 +1568,7 @@ Fraud Detection System`;
             localStorage.removeItem('fraudTransactions');
             this.loadTransactionHistory();
             this.updateStats();
-            this.showAlert('🗑️ History cleared', 'success');
+            this.showAlert('🗑 History cleared', 'success');
         }
     }
 
@@ -1620,9 +1607,7 @@ Fraud Detection System`;
         document.body.appendChild(alertDiv);
 
         setTimeout(() => {
-            if (alertDiv.parentNode) {
-                alertDiv.parentNode.removeChild(alertDiv);
-            }
+            if (alertDiv.parentNode) alertDiv.parentNode.removeChild(alertDiv);
         }, 5000);
     }
 
@@ -1631,7 +1616,6 @@ Fraud Detection System`;
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
             
-            // Header
             doc.setFillColor(44, 62, 80);
             doc.rect(0, 0, 210, 30, 'F');
             doc.setTextColor(255, 255, 255);
@@ -1640,7 +1624,6 @@ Fraud Detection System`;
             doc.setFontSize(12);
             doc.text('Transaction Security Report', 105, 22, { align: 'center' });
             
-            // Transaction Details
             doc.setTextColor(0, 0, 0);
             doc.setFontSize(16);
             doc.text('Transaction Details', 20, 45);
@@ -1656,7 +1639,6 @@ Fraud Detection System`;
             doc.text(`Status: ${transactionData.status}`, 20, yPos); yPos += 8;
             doc.text(`Remaining Balance: $${transactionData.remainingBalance.toLocaleString()}`, 20, yPos);
             
-            // Service Status
             yPos += 15;
             doc.setFontSize(16);
             doc.text('Service Status', 20, yPos);
@@ -1665,7 +1647,6 @@ Fraud Detection System`;
             doc.text(`SMS Service: ${this.backendActive ? 'REAL Twilio Active' : 'Simulation'}`, 20, yPos); yPos += 8;
             doc.text(`Email Service: ${this.emailActive ? 'Active' : 'Offline'}`, 20, yPos);
             
-            // Security Alerts
             yPos += 15;
             doc.setFontSize(16);
             doc.text('Security Alerts', 20, yPos);
@@ -1673,14 +1654,10 @@ Fraud Detection System`;
             doc.setFontSize(10);
             transactionData.alerts.forEach(alert => {
                 yPos += 8;
-                if (yPos > 270) { 
-                    doc.addPage(); 
-                    yPos = 20; 
-                }
+                if (yPos > 270) { doc.addPage(); yPos = 20; }
                 doc.text(`• ${alert}`, 25, yPos);
             });
             
-            // Footer
             doc.setFontSize(10);
             doc.setTextColor(128, 128, 128);
             doc.text(`Generated on ${new Date().toLocaleString()}`, 105, 285, { align: 'center' });
@@ -1692,9 +1669,29 @@ Fraud Detection System`;
             this.showAlert('Error generating PDF report', 'error');
         }
     }
+
+    // New method to test SMS connection
+    async testSMSConnection() {
+        try {
+            this.showAlert('🧪 Testing SMS connection to backend...', 'info');
+            
+            const response = await fetch(`${CONFIG.backendUrl}/health`);
+            const data = await response.json();
+            
+            if (data.status === 'OK') {
+                this.showAlert('✅ Backend is connected and healthy! REAL SMS is ready.', 'success');
+                return true;
+            } else {
+                throw new Error('Backend returned non-OK status');
+            }
+        } catch (error) {
+            this.showAlert('❌ Backend connection failed: ' + error.message, 'error');
+            return false;
+        }
+    }
 }
 
-// Initialize system when DOM is loaded
+// Initialize system
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM loaded - Fraud Detection System Ready');
     window.fraudSystem = new FraudDetectionSystem();
