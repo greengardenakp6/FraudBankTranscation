@@ -1325,89 +1325,122 @@ Please review immediately.
 Fraud Detection System`;
     }
 
-    // Send email only
-const emailResponse = await fetch('http://localhost:3000/send-email', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-        to: 'recipient@email.com',
-        subject: 'Fraud Alert Notification',
-        message: 'High-risk transaction detected!',
-        transactionData: transaction
-    })
-});
 
-// Send both SMS and Email together
-const alertResponse = await fetch('http://localhost:3000/send-alerts', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-        sms: {
-            to: '+1234567890',
-            message: 'Fraud alert message...'
-        },
-        email: {
-            to: 'admin@company.com',
-            subject: 'Fraud Detection Alert',
-            message: 'Detailed alert description...'
-        },
-        transactionData: transaction
-    })
-});
+
     async sendRealEmail(emailAddress = null, transactionData = null) {
-        if (!this.emailActive) {
-            this.showAlert('❌ Email service is currently offline', 'error');
-            return;
+    if (!this.emailActive) {
+        this.showAlert('❌ Email service is currently offline', 'error');
+        return;
+    }
+
+    const email = emailAddress || document.getElementById('emailTo').value;
+    const transaction = transactionData || this.currentTransaction;
+    const subject = document.getElementById('emailSubject')?.value || this.generateEmailSubject(transaction);
+    const message = document.getElementById('emailMessage')?.value || this.generateEmailMessage(transaction);
+    
+    if (!email || !subject || !message) {
+        this.showAlert('Email address, subject, and message are required', 'error');
+        return;
+    }
+
+    try {
+        const sendBtn = document.getElementById('sendEmail');
+        if (sendBtn) {
+            sendBtn.disabled = true;
+            sendBtn.innerHTML = '<div class="loading-spinner"></div> Sending...';
         }
 
-        const email = emailAddress || document.getElementById('emailTo').value;
-        const transaction = transactionData || this.currentTransaction;
-        const subject = document.getElementById('emailSubject')?.value || this.generateEmailSubject(transaction);
-        const message = document.getElementById('emailMessage')?.value || this.generateEmailMessage(transaction);
-        
-        if (!email || !subject || !message) {
-            this.showAlert('Email address, subject, and message are required', 'error');
-            return;
-        }
+        console.log('📧 Attempting to send email to:', email);
 
-        try {
-            const sendBtn = document.getElementById('sendEmail');
-            if (sendBtn) {
-                sendBtn.disabled = true;
-                sendBtn.innerHTML = '<div class="loading-spinner"></div> Sending...';
-            }
-
+        // Method 1: Using EmailJS (Frontend)
+        if (typeof emailjs !== 'undefined') {
             const templateParams = {
                 to_email: email,
                 subject: subject,
                 message: message,
-                transaction_id: transaction.id,
-                account_number: transaction.accNo,
-                amount: transaction.amount,
-                risk_score: transaction.riskScore
+                transaction_id: transaction?.id || 'N/A',
+                account_number: transaction?.accNo || 'N/A',
+                amount: transaction?.amount ? `$${transaction.amount.toLocaleString()}` : 'N/A',
+                risk_score: transaction?.riskScore ? `${transaction.riskScore}%` : 'N/A',
+                location: transaction?.location || 'N/A',
+                timestamp: transaction?.timestamp || new Date().toLocaleString()
             };
 
-            const result = await emailjs.send(CONFIG.emailjs.serviceId, CONFIG.emailjs.templateId, templateParams);
+            console.log('📧 Sending via EmailJS with params:', templateParams);
+
+            const result = await emailjs.send(
+                CONFIG.emailjs.serviceId,
+                CONFIG.emailjs.templateId,
+                templateParams
+            );
 
             if (result.status === 200) {
-                this.showAlert('✅ Email sent successfully!', 'success');
+                this.showAlert('✅ Email sent successfully via EmailJS!', 'success');
                 this.closeModal();
+                console.log('📧 Email sent successfully:', result);
             } else {
-                throw new Error('Failed to send email');
+                throw new Error('EmailJS returned non-200 status');
             }
+        } 
+        // Method 2: Using Backend Email Service
+        else if (this.backendActive) {
+            const response = await fetch(`${CONFIG.backendUrl}/send-email`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    to: email,
+                    subject: subject,
+                    message: message,
+                    transactionData: transaction
+                })
+            });
 
-        } catch (error) {
-            console.error('Email error:', error);
-            this.showAlert('❌ Failed to send email: ' + error.message, 'error');
-        } finally {
-            const sendBtn = document.getElementById('sendEmail');
-            if (sendBtn) {
-                sendBtn.disabled = false;
-                sendBtn.innerHTML = 'Send Real Email';
+            const result = await response.json();
+
+            if (result.success) {
+                this.showAlert('✅ Email sent successfully via backend!', 'success');
+                this.closeModal();
+                console.log('📧 Email sent via backend:', result);
+            } else {
+                throw new Error(result.error || 'Failed to send email via backend');
             }
+        } 
+        // Method 3: Fallback simulation
+        else {
+            await this.sendEmailSimulation(email, subject, message);
+        }
+
+    } catch (error) {
+        console.error('❌ Email sending failed:', error);
+        
+        // Fallback to simulation
+        this.showAlert('🔄 Email service failed, using simulation', 'warning');
+        await this.sendEmailSimulation(email, subject, message);
+    } finally {
+        const sendBtn = document.getElementById('sendEmail');
+        if (sendBtn) {
+            sendBtn.disabled = false;
+            sendBtn.innerHTML = 'Send Real Email';
         }
     }
+}
 
+// Email simulation fallback
+async sendEmailSimulation(email, subject, message) {
+    return new Promise((resolve) => {
+        setTimeout(() => {
+            console.log('📧 Email Simulation:');
+            console.log('To:', email);
+            console.log('Subject:', subject);
+            console.log('Message:', message);
+            this.showAlert('✅ Email sent successfully! (Simulation Mode)', 'success');
+            this.closeModal();
+            resolve({ success: true, message: 'Email sent (simulated)' });
+        }, 2000);
+    });
+}
     closeModal() {
         document.querySelectorAll('.modal').forEach(modal => {
             modal.style.display = 'none';
