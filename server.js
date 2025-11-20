@@ -12,7 +12,7 @@ app.use(express.json());
 // Twilio configuration - ADD YOUR REAL CREDENTIALS HERE
 const accountSid = process.env.TWILIO_ACCOUNT_SID || 'ACf60f450f29fabf5d4dd01680f2052f48';
 const authToken = process.env.TWILIO_AUTH_TOKEN || '614f4f07bfff3587434f76ae4be21d25';
-const twilioPhone = process.env.TWILIO_PHONE_NUMBER || '+1234567890';
+const twilioPhone = process.env.TWILIO_PHONE_NUMBER || '‪+14787395985‬';
 
 const client = twilio(accountSid, authToken);
 
@@ -49,8 +49,8 @@ app.post('/send-sms', async (req, res) => {
             });
         }
 
-        console.log(`📱 Attempting to send SMS to: ${to}`);
-        console.log(`📝 Message: ${message}`);
+        console.log(📱 Attempting to send SMS to: ${to});
+        console.log(📝 Message: ${message});
 
         // Send SMS via Twilio
         const twilioResponse = await client.messages.create({
@@ -89,7 +89,7 @@ app.post('/test-sms', async (req, res) => {
         const twilioResponse = await client.messages.create({
             body: testMessage,
             from: twilioPhone,
-            to: to || '+919876543210' // Default test number
+            to: to || '‪+919876543210‬' /
         });
 
         res.json({
@@ -107,7 +107,7 @@ app.post('/test-sms', async (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`🚀 Fraud Detection SMS Server running on port ${PORT}`);
-    console.log(`📞 Twilio SMS Service: ACTIVE`);
-    console.log(`🌐 Health check: http://localhost:${PORT}/health`);
+    console.log('🚀 Fraud Detection SMS Server running on port ${PORT}');
+    console.log('📞 Twilio SMS Service: ACTIVE');
+    console.log('🌐 Health check: http://localhost:${PORT}/health');
 });
