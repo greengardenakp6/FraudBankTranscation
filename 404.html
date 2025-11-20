@@ -1206,7 +1206,7 @@ class FraudDetectionSystem {
         const riskLevel = transaction.riskScore >= 60 ? 'HIGH RISK' : transaction.riskScore >= 30 ? 'MEDIUM RISK' : 'LOW RISK';
         return `🚨 FRAUD ALERT: Transaction $${transaction.amount.toLocaleString()} at ${transaction.location}. Risk: ${transaction.riskScore}% (${riskLevel}). Account: ${transaction.accNo}. Timestamp: ${transaction.timestamp}. Please verify immediately.`;
     }
-
+ 
     async sendRealSMS(phoneNumber = null, transactionData = null) {
         const phone = phoneNumber || document.getElementById('phoneNumber').value;
         const transaction = transactionData || this.currentTransaction;
@@ -1286,7 +1286,7 @@ class FraudDetectionSystem {
             }, 2000);
         });
     }
-
+  
     openEmailModal(transactionData) {
         this.currentTransaction = transactionData;
         const subject = this.generateEmailSubject(transactionData);
@@ -1325,6 +1325,35 @@ Please review immediately.
 Fraud Detection System`;
     }
 
+    // Send email only
+const emailResponse = await fetch('http://localhost:3000/send-email', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+        to: 'recipient@email.com',
+        subject: 'Fraud Alert Notification',
+        message: 'High-risk transaction detected!',
+        transactionData: transaction
+    })
+});
+
+// Send both SMS and Email together
+const alertResponse = await fetch('http://localhost:3000/send-alerts', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+        sms: {
+            to: '+1234567890',
+            message: 'Fraud alert message...'
+        },
+        email: {
+            to: 'admin@company.com',
+            subject: 'Fraud Detection Alert',
+            message: 'Detailed alert description...'
+        },
+        transactionData: transaction
+    })
+});
     async sendRealEmail(emailAddress = null, transactionData = null) {
         if (!this.emailActive) {
             this.showAlert('❌ Email service is currently offline', 'error');
