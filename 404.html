@@ -876,9 +876,9 @@
     </div>
 
     <script>
-       // Configuration - WITH REAL SMS BACKEND
+  // Configuration - WITH REAL SMS BACKEND
 const CONFIG = {
-   backendUrl: 'https://fraudbanktranscation.onrender.com',
+    backendUrl: 'https://fraudbanktranscation.onrender.com',
     
     emailjs: {
         publicKey: 'CaMVUkQYox6o96Q29',
@@ -910,8 +910,8 @@ class FraudDetectionSystem {
     constructor() {
         this.transactions = [];
         this.accounts = CONFIG.accounts;
-        this.backendActive = false;
-        this.smsActive = false; // Start as false, check backend
+        this.backendActive = false; // Fixed: Start as false
+        this.smsActive = false; // Fixed: Start as false
         this.emailActive = true;
         this.currentTransaction = null;
         this.init();
@@ -941,10 +941,10 @@ class FraudDetectionSystem {
             }
         } catch (error) {
             console.log('❌ Backend not available - using simulation mode');
-            this.backendActive = false;
-            this.smsActive = true; // Enable simulation
-            this.setBackendStatus(false);
-            this.setSMSStatus(true);
+            this.backendActive = false; // Fixed: Set to false when backend is down
+            this.smsActive = false; 
+            this.setBackendStatus(false); // Fixed: Set to false
+            this.setSMSStatus(false);
             this.showAlert('⚠️ Backend offline - SMS in simulation mode', 'warning');
         }
     }
@@ -1020,6 +1020,12 @@ class FraudDetectionSystem {
                 if (e.target === modal) this.closeModal();
             });
         });
+
+        // Add test connection button if it exists
+        const testBtn = document.getElementById('testConnection');
+        if (testBtn) {
+            testBtn.addEventListener('click', () => this.testSMSConnection());
+        }
     }
 
     async handleTransaction(e) {
@@ -1033,6 +1039,12 @@ class FraudDetectionSystem {
 
         if (!accNo || !amount || amount <= 0 || !location || !mobileNumber || !emailAddress) {
             this.showAlert('Please fill all fields correctly', 'error');
+            return;
+        }
+
+        // Validate phone number format
+        if (!mobileNumber.startsWith('+')) {
+            this.showAlert('❌ Phone number must include country code (e.g., +91 for India)', 'error');
             return;
         }
 
@@ -1205,11 +1217,6 @@ class FraudDetectionSystem {
     }
 
     async sendRealSMS(phoneNumber = null, transactionData = null) {
-        if (!this.smsActive) {
-            this.showAlert('❌ SMS service is currently offline', 'error');
-            return;
-        }
-
         const phone = phoneNumber || document.getElementById('phoneNumber').value;
         const transaction = transactionData || this.currentTransaction;
         const message = document.getElementById('smsMessage')?.value || this.generateSMSMessage(transaction);
@@ -1219,19 +1226,32 @@ class FraudDetectionSystem {
             return;
         }
 
+        // Validate phone number format
+        if (!phone.startsWith('+')) {
+            this.showAlert('❌ Phone number must include country code (e.g., +91 for India)', 'error');
+            return;
+        }
+
         try {
             const sendBtn = document.getElementById('sendSMS');
             if (sendBtn) {
                 sendBtn.disabled = true;
-                sendBtn.innerHTML = '<div class="loading-spinner"></div> Sending...';
+                sendBtn.innerHTML = '<div class="loading-spinner"></div> Sending REAL SMS...';
             }
 
             if (this.backendActive) {
                 // REAL SMS via backend
+                console.log('📱 Sending REAL SMS to:', phone);
                 const response = await fetch(`${CONFIG.backendUrl}/send-sms`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ to: phone, message: message, transactionId: transaction?.id })
+                    headers: { 
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        to: phone, 
+                        message: message, 
+                        transactionId: transaction?.id 
+                    })
                 });
 
                 const result = await response.json();
@@ -1244,17 +1264,17 @@ class FraudDetectionSystem {
                     throw new Error(result.error || 'Failed to send SMS');
                 }
             } else {
-                // SMS Simulation
-                const result = await this.sendSMSSimulation(phone, message);
-                if (result.success) {
-                    this.showAlert('✅ SMS sent successfully! (Simulation Mode)', 'success');
-                    this.closeModal();
-                }
+                // Fallback to simulation
+                await this.sendSMSSimulation(phone, message);
             }
 
         } catch (error) {
             console.error('SMS error:', error);
-            this.showAlert('❌ Failed to send SMS: ' + error.message, 'error');
+            this.showAlert(`❌ SMS failed: ${error.message}`, 'error');
+            
+            // Fallback to simulation
+            this.showAlert('🔄 Using SMS simulation instead', 'warning');
+            await this.sendSMSSimulation(phone, message);
         } finally {
             const sendBtn = document.getElementById('sendSMS');
             if (sendBtn) {
@@ -1269,6 +1289,8 @@ class FraudDetectionSystem {
             setTimeout(() => {
                 console.log(`📱 SMS Simulation to: ${phoneNumber}`);
                 console.log(`Message: ${message}`);
+                this.showAlert('✅ SMS sent successfully! (Simulation Mode)', 'success');
+                this.closeModal();
                 resolve({ success: true, message: 'SMS sent successfully (simulated)' });
             }, 2000);
         });
@@ -1592,6 +1614,26 @@ Fraud Detection System`;
         } catch (error) {
             console.error('PDF error:', error);
             this.showAlert('Error generating PDF report', 'error');
+        }
+    }
+
+    // New method to test SMS connection
+    async testSMSConnection() {
+        try {
+            this.showAlert('🧪 Testing SMS connection to backend...', 'info');
+            
+            const response = await fetch(`${CONFIG.backendUrl}/health`);
+            const data = await response.json();
+            
+            if (data.status === 'OK') {
+                this.showAlert('✅ Backend is connected and healthy! REAL SMS is ready.', 'success');
+                return true;
+            } else {
+                throw new Error('Backend returned non-OK status');
+            }
+        } catch (error) {
+            this.showAlert('❌ Backend connection failed: ' + error.message, 'error');
+            return false;
         }
     }
 }
