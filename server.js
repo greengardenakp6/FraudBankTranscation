@@ -1,320 +1,385 @@
 const express = require('express');
-const cors = require('cors');
-const { exec } = require('child_process');
 const twilio = require('twilio');
+const nodemailer = require('nodemailer');
+const cors = require('cors');
 
 const app = express();
+const PORT = process.env.PORT || 3000;
+
+// Middleware
 app.use(cors());
 app.use(express.json());
 
-// Your Twilio credentials
-const accountSid = 'ACf60f450f29fabf5d4dd0f680f2052f48';
-const authToken = '27b218e9132e0e79d54b30051aed8a48';
-const twilioPhone = '+14787395985';
+// Twilio configuration
+const accountSid = process.env.TWILIO_ACCOUNT_SID || 'ACf60f450f29fabf5d4dd01680f2052f48';
+const authToken = process.env.TWILIO_AUTH_TOKEN || '614f4f07bfff3587434f76ae4be21d25';
+const twilioPhone = process.env.TWILIO_PHONE_NUMBER || '+14787395985';
+
 const client = twilio(accountSid, authToken);
 
-// Path to your compiled C program
-const C_PROGRAM_PATH = './fraudbackend';
-
-// Test endpoint
-app.get('/api/test', (req, res) => {
-    res.json({ 
-        success: true, 
-        message: '✅ Backend server is ONLINE!',
-        timestamp: new Date().toISOString()
-    });
-});
-
-// Process transaction using C backend
-app.post('/api/process-transaction', (req, res) => {
-    const { accNo, amount, location, mobileNumber, emailAddress } = req.body;
-
-    console.log('📥 Received transaction:', { accNo, amount, location });
-
-    // Validate inputs
-    if (!accNo || !amount || !location || !mobileNumber || !emailAddress) {
-        return res.status(400).json({ 
-            success: false, 
-            error: 'Missing required fields' 
-        });
+// Email configuration - ADD YOUR EMAIL CREDENTIALS HERE
+const emailConfig = {
+    service: 'gmail', // or 'outlook', 'yahoo', etc.
+    auth: {
+        user: process.env.EMAIL_USER || 'your-email@gmail.com', // YOUR EMAIL
+        pass: process.env.EMAIL_PASSWORD || 'your-app-password' // YOUR APP PASSWORD
     }
+};
 
-    // Execute C program
-    const command = `"${C_PROGRAM_PATH}" ${accNo} ${amount} "${location.replace(/"/g, '\\"')}" "${mobileNumber}" "${emailAddress}"`;
-    
-    console.log('🔧 Executing C program:', command);
-    
-    exec(command, (error, stdout, stderr) => {
-        if (error) {
-            console.error('❌ C program error:', error);
-            return res.status(500).json({ 
-                success: false, 
-                error: 'Backend processing failed: ' + error.message 
-            });
-        }
+// Create email transporter
+const emailTransporter = nodemailer.createTransport(emailConfig);
 
-        if (stderr) {
-            console.error('⚠️ C program stderr:', stderr);
-        }
+// Verify email configuration
+emailTransporter.verify((error, success) => {
+    if (error) {
+        console.log('❌ Email configuration error:', error);
+    } else {
+        console.log('✅ Email server is ready to send messages');
+    }
+});
 
-        console.log('📤 C program output:', stdout);
-
-        try {
-            const result = JSON.parse(stdout);
-            console.log('✅ Transaction processed successfully');
-            res.json(result);
-        } catch (parseError) {
-            console.error('❌ JSON parse error:', parseError);
-            res.status(500).json({ 
-                success: false, 
-                error: 'Invalid response from backend: ' + parseError.message,
-                rawOutput: stdout
-            });
-        }
+// Health check endpoint
+app.get('/health', (req, res) => {
+    res.json({ 
+        status: 'OK', 
+        service: 'Fraud Detection Alert Service',
+        timestamp: new Date().toISOString(),
+        twilio: 'Active',
+        email: 'Active'
     });
 });
 
-// Real SMS sending endpoint
-app.post('/api/send-sms', async (req, res) => {
+// SMS sending endpoint
+app.post('/send-sms', async (req, res) => {
     try {
-        const { phoneNumber, message } = req.body;
+        const { to, message, transactionId } = req.body;
 
-        console.log('📱 Attempting to send SMS to:', phoneNumber);
-        
-        if (!phoneNumber.startsWith('+')) {
-            return res.status(400).json({ 
-                success: false, 
-                error: 'Phone number must include country code (e.g., +1XXXXXXXXXX)' 
+        console.log('📱 Received SMS request:', { to, transactionId });
+
+        // Validate input
+        if (!to || !message) {
+            return res.status(400).json({
+                success: false,
+                error: 'Phone number and message are required'
             });
         }
 
+        // Validate phone number format
+        if (!to.startsWith('+')) {
+            return res.status(400).json({
+                success: false,
+                error: 'Phone number must include country code (e.g., +91 for India)'
+            });
+        }
+
+        console.log(`📱 Attempting to send SMS to: ${to}`);
+        console.log(`📝 Message: ${message}`);
+
+        // Send SMS via Twilio
         const twilioResponse = await client.messages.create({
             body: message,
             from: twilioPhone,
-            to: phoneNumber
+            to: to
         });
 
         console.log('✅ SMS sent successfully:', twilioResponse.sid);
-        
-        res.json({ 
-            success: true, 
+
+        res.json({
+            success: true,
             message: 'SMS sent successfully',
-            sid: twilioResponse.sid
+            sid: twilioResponse.sid,
+            status: twilioResponse.status,
+            to: to
         });
+
     } catch (error) {
         console.error('❌ SMS sending failed:', error.message);
-        res.status(500).json({ 
-            success: false, 
-            error: error.message 
+        
+        res.status(500).json({
+            success: false,
+            error: error.message,
+            code: error.code
         });
     }
 });
 
-// Real Email sending endpoint
-app.post('/api/send-email', async (req, res) => {
+// REAL EMAIL SENDING ENDPOINT
+app.post('/send-email', async (req, res) => {
     try {
-        const { to_email, subject, message, transactionData } = req.body;
+        const { to, subject, message, transactionData } = req.body;
 
-        console.log('📧 Attempting to send email to:', to_email);
-        
-        if (!to_email || !subject || !message) {
-            return res.status(400).json({ 
-                success: false, 
-                error: 'Missing required email fields' 
+        console.log('📧 Received Email request:', { to, subject });
+
+        // Validate input
+        if (!to || !subject || !message) {
+            return res.status(400).json({
+                success: false,
+                error: 'Email, subject, and message are required'
             });
         }
 
-        // Using EmailJS service (you'll need to set this up)
-        // For now, we'll simulate email sending
-        // In production, integrate with EmailJS, SendGrid, or similar service
-        
-        console.log('✅ Email would be sent to:', to_email);
-        console.log('📋 Subject:', subject);
-        console.log('📝 Message:', message);
-        
-        // Simulate successful email sending
-        // Replace this with actual EmailJS integration
-        const emailResult = await sendEmailViaEmailJS(to_email, subject, message, transactionData);
-        
-        res.json({ 
-            success: true, 
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(to)) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid email address format'
+            });
+        }
+
+        console.log(`📧 Attempting to send email to: ${to}`);
+        console.log(`📋 Subject: ${subject}`);
+
+        // Create email content
+        const emailContent = {
+            from: emailConfig.auth.user, // Your email as sender
+            to: to, // Recipient email
+            subject: subject,
+            html: `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <style>
+                        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }
+                        .content { background: #f8f9fa; padding: 20px; border-radius: 0 0 10px 10px; }
+                        .alert-box { background: #fff3cd; border: 1px solid #ffc107; padding: 15px; border-radius: 5px; margin: 15px 0; }
+                        .transaction-details { background: white; padding: 15px; border-radius: 5px; margin: 15px 0; border-left: 4px solid #3498db; }
+                        .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <div class="header">
+                            <h1>🚨 Fraud Detection System</h1>
+                            <p>Security Alert Notification</p>
+                        </div>
+                        <div class="content">
+                            <div class="alert-box">
+                                <h3>🔍 Security Alert</h3>
+                                <p>${message}</p>
+                            </div>
+                            ${transactionData ? `
+                            <div class="transaction-details">
+                                <h3>📊 Transaction Details</h3>
+                                <p><strong>Transaction ID:</strong> ${transactionData.id || 'N/A'}</p>
+                                <p><strong>Account:</strong> ${transactionData.accNo || 'N/A'}</p>
+                                <p><strong>Amount:</strong> $${transactionData.amount ? transactionData.amount.toLocaleString() : 'N/A'}</p>
+                                <p><strong>Location:</strong> ${transactionData.location || 'N/A'}</p>
+                                <p><strong>Risk Score:</strong> ${transactionData.riskScore || 'N/A'}%</p>
+                                <p><strong>Status:</strong> ${transactionData.status || 'N/A'}</p>
+                                <p><strong>Timestamp:</strong> ${transactionData.timestamp || new Date().toLocaleString()}</p>
+                            </div>
+                            ` : ''}
+                            <div class="footer">
+                                <p>This is an automated message from Fraud Detection System.</p>
+                                <p>Please do not reply to this email.</p>
+                            </div>
+                        </div>
+                    </div>
+                </body>
+                </html>
+            `,
+            text: `${subject}\n\n${message}\n\n${transactionData ? `Transaction Details:\n- ID: ${transactionData.id}\n- Account: ${transactionData.accNo}\n- Amount: $${transactionData.amount}\n- Location: ${transactionData.location}\n- Risk: ${transactionData.riskScore}%\n- Status: ${transactionData.status}` : ''}\n\nThis is an automated message. Please do not reply.`
+        };
+
+        // Send email
+        const emailResponse = await emailTransporter.sendMail(emailContent);
+
+        console.log('✅ Email sent successfully:', emailResponse.messageId);
+
+        res.json({
+            success: true,
             message: 'Email sent successfully',
-            emailId: Date.now().toString()
+            messageId: emailResponse.messageId,
+            to: to,
+            subject: subject
         });
-        
+
     } catch (error) {
         console.error('❌ Email sending failed:', error.message);
-        res.status(500).json({ 
-            success: false, 
-            error: error.message 
+        
+        res.status(500).json({
+            success: false,
+            error: error.message,
+            details: 'Check your email configuration and credentials'
         });
     }
 });
 
-// EmailJS integration function
-async function sendEmailViaEmailJS(to_email, subject, message, transactionData) {
-    // This is where you integrate with EmailJS
-    // You'll need to install: npm install emailjs-com
-    const emailjs = require('emailjs-com');
-    
-    // Your EmailJS credentials
-    const EMAILJS_CONFIG = {
-        publicKey: 'CaMVUkQYox6o96Q29',
-        serviceId: 'service_akash', 
-        templateId: 'template_akash'
-    };
-    
+// COMBINED ALERT ENDPOINT - Sends both SMS and Email
+app.post('/send-alerts', async (req, res) => {
     try {
-        // Initialize EmailJS
-        emailjs.init(EMAILJS_CONFIG.publicKey);
-        
-        const templateParams = {
-            to_email: to_email,
-            subject: subject,
-            message: message,
-            from_name: 'Fraud Detection System',
-            transaction_id: transactionData?.id || 'N/A',
-            account_number: transactionData?.accNo || 'N/A',
-            amount: transactionData?.amount || 'N/A',
-            risk_score: transactionData?.riskScore || 'N/A',
-            timestamp: new Date().toLocaleString()
-        };
-        
-        // Send email using EmailJS
-        const result = await emailjs.send(
-            EMAILJS_CONFIG.serviceId,
-            EMAILJS_CONFIG.templateId,
-            templateParams
-        );
-        
-        console.log('✅ Email sent via EmailJS:', result);
-        return result;
-        
-    } catch (error) {
-        console.error('❌ EmailJS error:', error);
-        // Fallback to console log for demo
-        console.log('📧 DEMO EMAIL:');
-        console.log('To:', to_email);
-        console.log('Subject:', subject);
-        console.log('Message:', message);
-        throw new Error('Email service temporarily unavailable');
-    }
-}
+        const { sms, email, transactionData } = req.body;
 
-// Test Twilio endpoint
-app.get('/api/test-twilio', async (req, res) => {
-    try {
-        await client.messages.list({ limit: 1 });
-        res.json({ 
-            success: true, 
-            message: 'Twilio service is active and ready to send SMS' 
-        });
-    } catch (error) {
-        res.json({ 
-            success: false, 
-            error: error.message 
-        });
-    }
-});
+        console.log('🚨 Sending combined alerts for transaction:', transactionData?.id);
 
-// Test Email endpoint
-app.get('/api/test-email', async (req, res) => {
-    try {
-        res.json({ 
-            success: true, 
-            message: 'Email service is configured and ready' 
-        });
-    } catch (error) {
-        res.json({ 
-            success: false, 
-            error: error.message 
-        });
-    }
-});
-
-// Auto-alerts endpoint for high-risk transactions
-app.post('/api/send-auto-alerts', async (req, res) => {
-    try {
-        const { transaction } = req.body;
-        
-        console.log('🚨 Sending auto-alerts for high-risk transaction:', transaction.id);
-        
         const results = {
             sms: { success: false },
             email: { success: false }
         };
-        
-        // Send SMS alert
-        if (transaction.phone) {
+
+        // Send SMS if provided
+        if (sms && sms.to && sms.message) {
             try {
-                const smsMessage = `🚨 FRAUD ALERT: Transaction $${transaction.amount} at ${transaction.location}. Risk: ${transaction.riskScore}%. Account: ${transaction.accNo}. Please verify immediately.`;
-                
                 const smsResult = await client.messages.create({
-                    body: smsMessage,
+                    body: sms.message,
                     from: twilioPhone,
-                    to: transaction.phone
+                    to: sms.to
                 });
-                
-                results.sms = { success: true, sid: smsResult.sid };
-                console.log('✅ Auto-SMS sent successfully');
+                results.sms = { 
+                    success: true, 
+                    sid: smsResult.sid,
+                    to: sms.to
+                };
+                console.log('✅ SMS alert sent successfully');
             } catch (smsError) {
-                console.error('❌ Auto-SMS failed:', smsError.message);
-                results.sms = { success: false, error: smsError.message };
+                console.error('❌ SMS alert failed:', smsError.message);
+                results.sms = { 
+                    success: false, 
+                    error: smsError.message 
+                };
             }
         }
-        
-        // Send Email alert
-        if (transaction.email) {
+
+        // Send Email if provided
+        if (email && email.to && email.subject && email.message) {
             try {
-                const emailSubject = `🚨 Fraud Detection Alert - High Risk - Transaction $${transaction.amount}`;
-                const emailMessage = this.generateEmailMessage(transaction);
-                
-                const emailResult = await sendEmailViaEmailJS(
-                    transaction.email, 
-                    emailSubject, 
-                    emailMessage, 
-                    transaction
-                );
-                
-                results.email = { success: true, emailId: Date.now().toString() };
-                console.log('✅ Auto-Email sent successfully');
+                const emailContent = {
+                    from: emailConfig.auth.user,
+                    to: email.to,
+                    subject: email.subject,
+                    html: `
+                        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; text-align: center;">
+                                <h1>🚨 Fraud Detection Alert</h1>
+                            </div>
+                            <div style="background: #f8f9fa; padding: 20px;">
+                                <div style="background: white; padding: 20px; border-radius: 5px; margin: 15px 0;">
+                                    <h3>${email.subject}</h3>
+                                    <p>${email.message}</p>
+                                </div>
+                                ${transactionData ? `
+                                <div style="background: #fff3cd; padding: 15px; border-radius: 5px;">
+                                    <h4>📊 Transaction Details</h4>
+                                    <p><strong>ID:</strong> ${transactionData.id}</p>
+                                    <p><strong>Account:</strong> ${transactionData.accNo}</p>
+                                    <p><strong>Amount:</strong> $${transactionData.amount?.toLocaleString()}</p>
+                                    <p><strong>Risk Score:</strong> ${transactionData.riskScore}%</p>
+                                    <p><strong>Status:</strong> ${transactionData.status}</p>
+                                </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `
+                };
+
+                const emailResult = await emailTransporter.sendMail(emailContent);
+                results.email = { 
+                    success: true, 
+                    messageId: emailResult.messageId,
+                    to: email.to
+                };
+                console.log('✅ Email alert sent successfully');
             } catch (emailError) {
-                console.error('❌ Auto-Email failed:', emailError.message);
-                results.email = { success: false, error: emailError.message };
+                console.error('❌ Email alert failed:', emailError.message);
+                results.email = { 
+                    success: false, 
+                    error: emailError.message 
+                };
             }
         }
-        
-        res.json({ 
-            success: true, 
-            message: 'Auto-alerts processed',
-            results: results
+
+        res.json({
+            success: true,
+            message: 'Alerts processed',
+            results: results,
+            timestamp: new Date().toISOString()
         });
-        
+
     } catch (error) {
-        console.error('❌ Auto-alerts failed:', error.message);
-        res.status(500).json({ 
-            success: false, 
-            error: error.message 
+        console.error('❌ Combined alerts failed:', error.message);
+        res.status(500).json({
+            success: false,
+            error: error.message
         });
     }
 });
 
-const PORT = 3000;
+// Test endpoints
+app.post('/test-sms', async (req, res) => {
+    try {
+        const { to } = req.body;
+        const testMessage = "🚨 TEST: Fraud Detection System is working! Real SMS alerts are active.";
+
+        const twilioResponse = await client.messages.create({
+            body: testMessage,
+            from: twilioPhone,
+            to: to || '+919876543210' // Default test number
+        });
+
+        res.json({
+            success: true,
+            message: 'Test SMS sent successfully',
+            sid: twilioResponse.sid
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+app.post('/test-email', async (req, res) => {
+    try {
+        const { to } = req.body;
+        const testEmail = to || 'test@example.com';
+
+        const testContent = {
+            from: emailConfig.auth.user,
+            to: testEmail,
+            subject: '🚨 TEST: Fraud Detection System - Email Service',
+            html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; text-align: center;">
+                        <h1>✅ Email Service Test</h1>
+                    </div>
+                    <div style="background: #f8f9fa; padding: 20px;">
+                        <div style="background: white; padding: 20px; border-radius: 5px;">
+                            <h3>Fraud Detection System</h3>
+                            <p>This is a test email to verify that the email notification system is working correctly.</p>
+                            <p><strong>Status:</strong> ✅ ACTIVE</p>
+                            <p><strong>Time:</strong> ${new Date().toLocaleString()}</p>
+                        </div>
+                    </div>
+                </div>
+            `
+        };
+
+        const emailResponse = await emailTransporter.sendMail(testContent);
+
+        res.json({
+            success: true,
+            message: 'Test email sent successfully',
+            messageId: emailResponse.messageId,
+            to: testEmail
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
 app.listen(PORT, () => {
-    console.log('🚀 ==========================================');
-    console.log('🚀 FRAUD DETECTION BACKEND SERVER STARTED');
-    console.log('🚀 ==========================================');
-    console.log(`📍 Server running on: http://localhost:${PORT}`);
-    console.log(`🔧 C Backend: ${C_PROGRAM_PATH}`);
-    console.log(`📱 Twilio Phone: ${twilioPhone}`);
-    console.log(`📧 Email Service: Configured`);
-    console.log('✅ Endpoints available:');
-    console.log(`   GET  http://localhost:${PORT}/api/test`);
-    console.log(`   GET  http://localhost:${PORT}/api/test-twilio`);
-    console.log(`   GET  http://localhost:${PORT}/api/test-email`);
-    console.log(`   POST http://localhost:${PORT}/api/process-transaction`);
-    console.log(`   POST http://localhost:${PORT}/api/send-sms`);
-    console.log(`   POST http://localhost:${PORT}/api/send-email`);
-    console.log(`   POST http://localhost:${PORT}/api/send-auto-alerts`);
-    console.log('🚀 ==========================================');
+    console.log(`🚀 Fraud Detection Alert Server running on port ${PORT}`);
+    console.log(`📞 Twilio SMS Service: ACTIVE`);
+    console.log(`📧 Email Notification Service: ACTIVE`);
+    console.log(`🌐 Health check: http://localhost:${PORT}/health`);
+    console.log(`✉️  Email configured from: ${emailConfig.auth.user}`);
 });
